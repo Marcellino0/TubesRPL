@@ -84,12 +84,10 @@ if ($activeSession) {
 
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Poliklinik X</title>
-    <!-- [Previous CSS styles remain the same] -->
     <style>
         * {
             margin: 0;
@@ -302,7 +300,6 @@ if ($activeSession) {
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <div class="login-box">
@@ -313,10 +310,10 @@ if ($activeSession) {
 
             <?php displayMessage(); ?>
 
-            <form action="process_login.php" method="POST" class="login-form">
+            <form action="" method="POST" class="login-form">
                 <div class="form-group">
                     <label for="user_type">Login Sebagai:</label>
-                    <select name="user_type" id="user_type" required>
+                    <select name="user_type" id="user_type" required onchange="updateFormAction(this.value)">
                         <option value="pasien">Pasien</option>
                         <option value="dokter">Dokter</option>
                         <option value="admin">Administrator</option>
@@ -346,11 +343,9 @@ if ($activeSession) {
                     <span class="separator">|</span>
                     <a href="./patient/register.php">Daftar Akun Baru</a>
                 </div>
-
             </form>
         </div>
 
-        <!-- [Rest of the HTML remains the same] -->
         <div class="info-box">
             <h3>Informasi Poliklinik</h3>
             <div class="info-content">
@@ -384,7 +379,7 @@ if ($activeSession) {
         function togglePassword() {
             const passwordInput = document.getElementById('password');
             const toggleBtn = document.querySelector('.toggle-password');
-
+            
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 toggleBtn.textContent = 'Hide';
@@ -393,20 +388,34 @@ if ($activeSession) {
                 toggleBtn.textContent = 'Show';
             }
         }
-        const userTypeSelect = document.getElementById('user_type');
-        const patientLinks = document.getElementById('patient-links');
 
-        userTypeSelect.addEventListener('change', () => {
-            if (userTypeSelect.value === 'pasien') {
-                patientLinks.style.display = 'block';
-            } else {
-                patientLinks.style.display = 'none';
-            }
+        function updateFormAction(userType) {
+            const form = document.querySelector('.login-form');
+            const patientLinks = document.getElementById('patient-links');
+            
+            switch(userType) {
+    case 'perawat':
+        form.action = 'nurse/process_login.php';
+        break;
+    case 'admin':
+        form.action = 'admin/process_login.php';
+        break;
+    case 'dokter':
+        form.action = 'doctor/process_login.php';
+        break;
+    case 'pasien':
+        form.action = 'patient/process_login.php';
+        break;
+}
+            
+            patientLinks.style.display = userType === 'pasien' ? 'block' : 'none';
+        }
+
+        // Set initial state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const userType = document.getElementById('user_type');
+            updateFormAction(userType.value);
         });
-
-        // Trigger change event on page load to set the initial state
-        userTypeSelect.dispatchEvent(new Event('change'));
     </script>
 </body>
-
 </html>
