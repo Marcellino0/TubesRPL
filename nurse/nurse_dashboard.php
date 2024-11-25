@@ -171,7 +171,7 @@ $pendingExaminations = getPendingExaminations($conn);
                         <span class="nav-link">Welcome, <?php echo $_SESSION['nama']; ?></span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="../logout.php">Logout</a>
+                        <a class="nav-link" href="logout.php">Logout</a>
                     </li>
                 </div>
             </div>
