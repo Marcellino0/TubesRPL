@@ -3,7 +3,7 @@ session_start();
 require_once('../config/db_connection.php');
 
 // Ambil seluruh data rekam medis
-$sql = "SELECT rm.ID_RekamMedis, rm.ID_Pasien, rm.Tekanan_Darah, rm.Tinggi_Badan, rm.Berat_Badan, rm.Suhu, 
+$sql = "SELECT rm.ID_Rekam, rm.ID_Pasien, rm.Tekanan_Darah, rm.Tinggi_Badan, rm.Berat_Badan, rm.Suhu, 
         rm.Riwayat_Penyakit, rm.Tanggal, p.Nama AS Nama_Pasien
         FROM rekam_medis rm
         JOIN pasien p ON rm.ID_Pasien = p.ID_Pasien
@@ -31,8 +31,7 @@ $result = $conn->query($sql);
     <table border="1" cellpadding="10" cellspacing="0">
         <thead>
             <tr>
-                <th>ID Rekam Medis</th>
-                <th>ID Pasien</th>
+                
                 <th>Nama Pasien</th>
                 <th>Tekanan Darah</th>
                 <th>Tinggi Badan (cm)</th>
@@ -47,8 +46,7 @@ $result = $conn->query($sql);
             <?php if ($result->num_rows > 0): ?>
                 <?php while ($row = $result->fetch_assoc()): ?>
                     <tr>
-                        <td><?php echo $row['ID_RekamMedis']; ?></td>
-                        <td><?php echo $row['ID_Pasien']; ?></td>
+                
                         <td><?php echo htmlspecialchars($row['Nama_Pasien']); ?></td>
                         <td><?php echo htmlspecialchars($row['Tekanan_Darah']); ?></td>
                         <td><?php echo htmlspecialchars($row['Tinggi_Badan']); ?></td>
