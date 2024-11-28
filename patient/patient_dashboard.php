@@ -148,17 +148,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                         </div>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-yellow-100 p-3 rounded-full">
-                            <i class="fas fa-clock text-yellow-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 text-sm">Janji Pending</p>
-                            <p class="text-2xl font-bold"><?php echo $patientData['pending_appointments']; ?></p>
-                        </div>
-                    </div>
-                </div>
+                
                 <div class="bg-white rounded-lg shadow p-6">
                     <div class="flex items-center space-x-4">
                         <div class="bg-green-100 p-3 rounded-full">
