@@ -44,7 +44,7 @@ if($search) {
                         <i class="fas fa-file-medical"></i>
                         <span>Rekam Medis</span>
                     </a>
-                    <a href="patient_queue.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
+                    <a href="diagnosa.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
                         <i class="fas fa-users"></i>
                         <span>Mencatat Diagnosa</span>
                     </a>
