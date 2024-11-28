@@ -59,8 +59,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
-    // Close database connection
-    $conn->close();
 } else {
     // If not POST request, redirect to login page
     header("Location: ../index.php");
