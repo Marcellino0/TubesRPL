@@ -149,14 +149,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </select>
                     </div>
 
-                    <!-- Registration Day Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Pilih Hari Pendaftaran</label>
-                        <select name="registration_day" id="registration_day" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            <option value="today">Hari Ini</option>
-                            <option value="tomorrow">Besok</option>
-                        </select>
-                    </div>
 
                     <div class="flex items-center justify-between space-x-4">
                         <a href="patient_dashboard.php" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
