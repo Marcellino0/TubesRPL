@@ -23,7 +23,7 @@ $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $patientData = $stmt->get_result()->fetch_assoc();
 
-// Ubah query untuk mengambil riwayat pemeriksaan di patient_dashboard.php
+// Modify exam results query to include more information
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pemeriksaan,
@@ -35,7 +35,9 @@ $stmt = $conn->prepare("
         rm.Tekanan_Darah,
         rm.Tinggi_Badan,
         rm.Berat_Badan,
-        rm.Suhu
+        rm.Suhu,
+        pend.ID_Pendaftaran,
+        pend.No_Antrian
     FROM Pemeriksaan p
     JOIN Dokter d ON p.ID_Dokter = d.ID_Dokter
     JOIN Pendaftaran pend ON p.ID_Pendaftaran = pend.ID_Pendaftaran
@@ -49,6 +51,31 @@ $stmt = $conn->prepare("
 $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $examResults = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Add a new query to fetch registration details with reservation proof
+$stmt = $conn->prepare("
+    SELECT 
+        p.ID_Pendaftaran,
+        d.Nama as nama_dokter,
+        d.Spesialis,
+        jd.Hari,
+        jd.Jam_Mulai,
+        jd.Jam_Selesai,
+        p.No_Antrian,
+        p.Waktu_Daftar,
+        p.Bukti_Reservasi,
+        p.Status
+    FROM Pendaftaran p
+    JOIN Jadwal_Dokter jd ON p.ID_Jadwal = jd.ID_Jadwal
+    JOIN Dokter d ON jd.ID_Dokter = d.ID_Dokter
+    WHERE p.ID_Pasien = ? 
+      AND p.Status = 'Menunggu'
+    ORDER BY p.Waktu_Daftar DESC
+    LIMIT 3
+");
+$stmt->bind_param("i", $patientId);
+$stmt->execute();
+$activeRegistrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 
 // Get payment history
@@ -131,48 +158,12 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                     <span>Logout</span>
                 </a>
             </div>
+
+            
         </aside>
 
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-blue-100 p-3 rounded-full">
-                            <i class="fas fa-clipboard-list text-blue-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 text-sm">Total Kunjungan</p>
-                            <p class="text-2xl font-bold"><?php echo $patientData['total_kunjungan']; ?></p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-green-100 p-3 rounded-full">
-                            <i class="fas fa-user-md text-green-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 text-sm">Dokter Tersedia</p>
-                            <p class="text-2xl font-bold"><?php echo $stats['total_doctors']; ?></p>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-purple-100 p-3 rounded-full">
-                            <i class="fas fa-stethoscope text-purple-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 text-sm">Spesialisasi</p>
-                            <p class="text-2xl font-bold"><?php echo $stats['total_specialties']; ?></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Recent Medical Examination Results -->
             <div class="bg-white rounded-lg shadow mb-8">
                 <div class="p-6">
@@ -189,7 +180,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                     <div class="flex justify-between items-start mb-2">
                                         <div>
                                             <h3 class="font-semibold text-lg">
-                                                Dr. <?php echo htmlspecialchars($exam['nama_dokter']); ?>
+                                                <?php echo htmlspecialchars($exam['nama_dokter']); ?>
                                                 <span class="text-sm text-gray-600">
                                                     (<?php echo htmlspecialchars($exam['Spesialis']); ?>)
                                                 </span>
@@ -198,9 +189,9 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                                 <?php echo date('d F Y, H:i', strtotime($exam['Waktu_Periksa'])); ?>
                                             </p>
                                         </div>
-                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                        <!-- <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
                                             Pemeriksaan #<?php echo $exam['ID_Pemeriksaan']; ?>
-                                        </span>
+                                        </span> -->
                                     </div>
 
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -250,11 +241,14 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                         </p>
                                     </div>
                                     <?php endif; ?>
+
+                                    
                                 </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </div>
+
             </div>
 
             <!-- Payment History -->
@@ -292,7 +286,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                                 <?php echo date('d/m/Y', strtotime($payment['Tanggal'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                Dr. <?php echo htmlspecialchars($payment['nama_dokter']); ?>
+                                              <?php echo htmlspecialchars($payment['nama_dokter']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?>
@@ -311,6 +305,63 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                     <?php endif; ?>
                 </div>
             </div>
+
+            <div class="bg-white rounded-lg shadow mt-8">
+    <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Pendaftaran Aktif</h2>
+            <a href="my_registrations.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
+        </div>
+        <?php if (empty($activeRegistrations)): ?>
+            <p class="text-gray-500">Tidak ada pendaftaran aktif</p>
+        <?php else: ?>
+            <div class="space-y-4">
+                <?php foreach ($activeRegistrations as $registration): ?>
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-semibold text-lg">
+                                    Dr. <?php echo htmlspecialchars($registration['nama_dokter']); ?>
+                                    <span class="text-sm text-gray-600">
+                                        (<?php echo htmlspecialchars($registration['Spesialis']); ?>)
+                                    </span>
+                                </h3>
+                                <p class="text-sm text-gray-600">
+                                    <?php echo htmlspecialchars($registration['Hari']); ?>, 
+                                    <?php echo htmlspecialchars($registration['Jam_Mulai']); ?> - 
+                                    <?php echo htmlspecialchars($registration['Jam_Selesai']); ?>
+                                </p>
+                            </div>
+                            <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                No. Antrian: <?php echo htmlspecialchars($registration['No_Antrian']); ?>
+                            </span>
+                        </div>
+
+                        <?php if ($registration['Bukti_Reservasi']): ?>
+                            <div class="mt-4 border-t pt-4">
+                                <h4 class="font-medium text-gray-700 mb-2">Bukti Reservasi:</h4>
+                                <div class="flex items-center space-x-4">
+                                    <?php 
+                                    $filePath = "../uploads/bukti_reservasi/" . htmlspecialchars($registration['Bukti_Reservasi']);
+                                    $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                                    ?>
+                                    <?php if (in_array($fileExtension, ['jpg', 'jpeg', 'png'])): ?>
+                                        <img src="<?php echo $filePath; ?>" alt="Bukti Reservasi" class="h-24 w-auto rounded-lg object-cover">
+                                    <?php elseif ($fileExtension === 'pdf'): ?>
+                                        <i class="fas fa-file-pdf text-4xl text-red-500"></i>
+                                    <?php endif; ?>
+                                    <a href="<?php echo $filePath; ?>" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
+                                        Lihat Bukti Reservasi
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
         </main>
     </div>
 </body>
