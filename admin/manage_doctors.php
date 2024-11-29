@@ -1,165 +1,251 @@
 <?php
 session_start();
-require_once('db_connection.php');
-require_once('messages.php');
+require_once('../config/db_connection.php');
 
-if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
+// Cek apakah user sudah login dan memiliki tipe 'admin'
+if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
-$conn = connectDB();
-?>
+$message = '';
+$messageType = '';
 
+// Handle form submission untuk Tambah/Edit Dokter
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $dokterId = $_POST['dokter_id'] ?? null;
+    $nama = $_POST['nama'];
+    $spesialis = $_POST['spesialis'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    if (empty($nama) || empty($spesialis) || empty($username)) {
+        $message = "Semua field kecuali password harus diisi!";
+        $messageType = "error";
+    } else {
+        if ($dokterId) {
+            // Update data dokter
+            if (!empty($password)) {
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+                $stmt = $conn->prepare("UPDATE Dokter SET Nama = ?, Spesialis = ?, Username = ?, Password = ? WHERE ID_Dokter = ?");
+                $stmt->bind_param("ssssi", $nama, $spesialis, $username, $hashedPassword, $dokterId);
+            } else {
+                $stmt = $conn->prepare("UPDATE Dokter SET Nama = ?, Spesialis = ?, Username = ? WHERE ID_Dokter = ?");
+                $stmt->bind_param("sssi", $nama, $spesialis, $username, $dokterId);
+            }
+        } else {
+            // Tambah dokter baru
+            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+            $stmt = $conn->prepare("INSERT INTO Dokter (Nama, Spesialis, Username, Password) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $nama, $spesialis, $username, $hashedPassword);
+        }
+
+        if ($stmt->execute()) {
+            $message = $dokterId ? "Data dokter berhasil diperbarui." : "Dokter baru berhasil ditambahkan.";
+            $messageType = "success";
+        } else {
+            $message = "Terjadi kesalahan: " . $conn->error;
+            $messageType = "error";
+        }
+    }
+}
+
+// Hapus dokter
+if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+    $dokterId = $_GET['id'];
+    $stmt = $conn->prepare("DELETE FROM Dokter WHERE ID_Dokter = ?");
+    $stmt->bind_param("i", $dokterId);
+
+    if ($stmt->execute()) {
+        $message = "Dokter berhasil dihapus.";
+        $messageType = "success";
+    } else {
+        $message = "Gagal menghapus dokter: " . $conn->error;
+        $messageType = "error";
+    }
+}
+
+// Ambil daftar dokter
+$dokterQuery = $conn->query("
+    SELECT d.*, 
+           (SELECT COUNT(*) FROM Jadwal_Dokter j WHERE j.ID_Dokter = d.ID_Dokter) AS total_jadwal
+    FROM Dokter d
+    ORDER BY d.Nama
+");
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelola Dokter - Poliklinik X</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <nav class="nav">
-        <ul>
-            <li><a href="admin_dashboard.php">Dashboard</a></li>
-            <li><a href="manage_doctors.php">Kelola Dokter</a></li>
-            <li><a href="manage_schedules.php">Kelola Jadwal</a></li>
-            <li><a href="logout.php">Logout</a></li>
-        </ul>
-    </nav>
-
-    <div class="container">
-        <?php displayMessage(); ?>
-
-        <div class="card">
-            <div class="card-header">
-                <h2>Kelola Data Dokter</h2>
+<body class="bg-gray-100">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-blue-800 text-white fixed h-full">
+            <div class="p-4">
+                <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
+                <nav class="space-y-2">
+                    <a href="admin_dashboard.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="manage_doctors.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
+                        <i class="fas fa-user-md"></i>
+                        <span>Kelola Dokter</span>
+                    </a>
+                    <a href="manage_schedules.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Kelola Jadwal</span>
+                    </a>
+                    <a href="manage_patients.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-users"></i>
+                        <span>Kelola Pasien</span>
+                    </a>
+                    <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-user-nurse"></i>
+                        <span>Kelola Perawat</span>
+                    </a>
+                </nav>
             </div>
-            <div class="card-body">
-                <!-- Form Tambah/Edit Dokter -->
-                <form action="process_doctor.php" method="POST" class="doctor-form">
-                    <div class="form-row">
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="nama">Nama Dokter:</label>
-                                <input type="text" id="nama" name="nama" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="spesialis">Spesialis:</label>
-                                <select id="spesialis" name="spesialis" required>
-                                    <option value="">Pilih Spesialis</option>
-                                    <option value="Umum">Umum</option>
-                                    <option value="Penyakit Dalam">Penyakit Dalam</option>
-                                    <option value="Anak">Anak</option>
-                                    <option value="Bedah">Bedah</option>
-                                    <option value="Kandungan">Kandungan</option>
-                                    <option value="Mata">Mata</option>
-                                    <option value="THT">THT</option>
-                                    <option value="Kulit">Kulit</option>
-                                    <option value="Saraf">Saraf</option>
-                                    <option value="Gigi">Gigi</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-col">
-                            <div class="form-group">
-                                <label for="username">Username:</label>
-                                <input type="text" id="username" name="username" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="password">Password:</label>
-                                <input type="password" id="password" name="password">
-                                <small class="hint">Kosongkan jika tidak ingin mengubah password</small>
-                            </div>
-                        </div>
+            <div class="absolute bottom-0 w-64 p-4 bg-blue-900">
+                <div class="flex items-center space-x-3 mb-4">
+                    <i class="fas fa-user-shield text-2xl"></i>
+                    <div>
+                        <p class="font-medium"><?php echo htmlspecialchars($_SESSION['nama']); ?></p>
+                        <p class="text-sm text-gray-300">Administrator</p>
                     </div>
+                </div>
+                <a href="logout.php" class="flex items-center space-x-3 p-2 rounded hover:bg-blue-800 text-red-300">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
 
-                    <input type="hidden" name="dokter_id" id="dokter_id">
-                    <button type="submit" name="action" value="add" class="btn btn-primary">Tambah Dokter</button>
-                </form>
+        <!-- Main Content -->
+        <main class="flex-1 ml-64 p-8">
+            <?php if ($message): ?>
+                <div class="mb-4 p-4 <?php 
+                    echo $messageType === 'success' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-red-100 text-red-800'; 
+                ?> rounded-md">
+                    <?php echo htmlspecialchars($message); ?>
+                </div>
+            <?php endif; ?>
 
-                <!-- Tabel Dokter -->
-                <div class="table-container mt-4">
-                    <h3>Daftar Dokter</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nama</th>
-                                <th>Spesialis</th>
-                                <th>Username</th>
-                                <th>Total Jadwal</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            $sql = "SELECT d.*, 
-                                   (SELECT COUNT(*) FROM Jadwal_Dokter j 
-                                    WHERE j.ID_Dokter = d.ID_Dokter) as total_jadwal
-                                   FROM Dokter d
-                                   ORDER BY d.Nama";
-                            
-                            $result = sqlsrv_query($conn, $sql);
-                            
-                            while($row = sqlsrv_fetch_array($result)) {
-                                echo "<tr>";
-                                echo "<td>" . $row['Nama'] . "</td>";
-                                echo "<td>" . $row['Spesialis'] . "</td>";
-                                echo "<td>" . $row['Username'] . "</td>";
-                                echo "<td>" . $row['total_jadwal'] . "</td>";
-                                echo "<td>";
-                                echo "<button onclick='editDokter(" . json_encode($row) . ")' 
-                                      class='btn btn-warning btn-sm'>Edit</button> ";
-                                
-                                if($row['total_jadwal'] == 0) {
-                                    echo "<a href='process_doctor.php?action=delete&id=" . $row['ID_Dokter'] . "' 
-                                          class='btn btn-danger btn-sm' 
-                                          onclick='return confirm(\"Yakin ingin menghapus dokter ini?\")'>Hapus</a>";
-                                }
-                                
-                                echo "</td>";
-                                echo "</tr>";
-                            }
-                            ?>
-                        </tbody>
-                    </table>
+            <!-- Dokter Management Card -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold mb-4">Kelola Dokter</h2>
+                    
+                    <!-- Form Tambah/Edit Dokter -->
+                    <form action="" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <input type="hidden" name="dokter_id" id="dokter_id">
+                        
+                        <div>
+                            <label for="nama" class="block text-sm font-medium text-gray-700">Nama Dokter</label>
+                            <input type="text" id="nama" name="nama" required 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        </div>
+                        
+                        <div>
+                            <label for="spesialis" class="block text-sm font-medium text-gray-700">Spesialis</label>
+                            <select id="spesialis" name="spesialis" required 
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                                <option value="">Pilih Spesialis</option>
+                                <option value="Umum">Umum</option>
+                                <option value="Penyakit Dalam">Penyakit Dalam</option>
+                                <option value="Anak">Anak</option>
+                                <option value="Bedah">Bedah</option>
+                                <option value="Kandungan">Kandungan</option>
+                                <option value="Mata">Mata</option>
+                                <option value="THT">THT</option>
+                                <option value="Kulit">Kulit</option>
+                                <option value="Saraf">Saraf</option>
+                                <option value="Gigi">Gigi</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                            <input type="text" id="username" name="username" required 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        </div>
+                        
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="password" name="password" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        </div>
+                        
+                        <div class="col-span-full">
+                            <button type="submit" 
+                                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                Simpan
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Daftar Dokter -->
+                    <h3 class="text-lg font-semibold mb-4">Daftar Dokter</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spesialis</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jadwal</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <?php while ($row = $dokterQuery->fetch_assoc()): ?>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Nama']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Spesialis']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Username']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['total_jadwal']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex flex-col space-y-2">
+                                                <button onclick="editDokter(<?= htmlspecialchars(json_encode($row)); ?>)" 
+                                                        class="text-white bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md text-sm">
+                                                    Edit
+                                                </button>
+                                                <button onclick="confirmDelete(<?= $row['ID_Dokter']; ?>)" 
+                                                        class="text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm">
+                                                    Hapus
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
         function editDokter(dokter) {
+            document.getElementById('dokter_id').value = dokter.ID_Dokter;
             document.getElementById('nama').value = dokter.Nama;
             document.getElementById('spesialis').value = dokter.Spesialis;
             document.getElementById('username').value = dokter.Username;
-            document.getElementById('password').value = '';
-            document.getElementById('dokter_id').value = dokter.ID_Dokter;
-            
-            // Change form button
-            const submitBtn = document.querySelector('button[type="submit"]');
-            submitBtn.textContent = 'Update Dokter';
-            submitBtn.value = 'update';
         }
 
-        // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const action = document.querySelector('button[type="submit"]').value;
-            const password = document.getElementById('password').value;
-            
-            if(action == 'add' && !password) {
-                e.preventDefault();
-                alert('Password harus diisi untuk dokter baru');
+        function confirmDelete(dokterId) {
+            if (confirm("Yakin ingin menghapus dokter ini?")) {
+                window.location.href = "?action=delete&id=" + dokterId;
             }
-        });
+        }
     </script>
 </body>
 </html>
-
-<?php
-closeDB($conn);
-?>
