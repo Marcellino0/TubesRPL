@@ -103,7 +103,7 @@ $examinations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             <div>
                                 <div class="flex items-center space-x-2">
                                     <h3 class="text-lg font-semibold">
-                                        Pemeriksaan oleh Dr. <?php echo htmlspecialchars($exam['nama_dokter']); ?>
+                                        Pemeriksaan oleh <?php echo htmlspecialchars($exam['nama_dokter']); ?>
                                     </h3>
                                     <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
                                         <?php echo htmlspecialchars($exam['Spesialis']); ?>
