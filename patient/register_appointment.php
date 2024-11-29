@@ -12,30 +12,36 @@ $patientId = $_SESSION['user_id'];
 $message = '';
 $messageType = '';
 
-// Get all specializations from doctors
-$stmt = $conn->prepare("SELECT DISTINCT Spesialis FROM Dokter ORDER BY Spesialis");
-$stmt->execute();
-$specializations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+// Fetch specializations dynamically
+$specQuery = "SELECT DISTINCT Spesialis FROM dokter";
+$specResult = $conn->query($specQuery);
+$specializations = [];
+while ($row = $specResult->fetch_assoc()) {
+    $specializations[] = $row;
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctorId = $_POST['doctor'] ?? '';
     $scheduleId = $_POST['schedule'] ?? '';
-    $registrationDay = $_POST['registration_day'] ?? 'today'; // New field for selecting day
     
     // Validate inputs
     if (empty($doctorId) || empty($scheduleId)) {
         $message = "Semua field harus diisi!";
         $messageType = "error";
     } else {
-        // Start transaction
+        // Start transaction for data integrity
         $conn->begin_transaction();
         
         try {
-            // Check quota and schedule availability
-            $quotaCheck = $conn->prepare("
+            // Use today's date for registration
+            $registrationDate = date('Y-m-d');
+            
+            // Check schedule availability and quota
+            $scheduleCheck = $conn->prepare("
                 SELECT 
-                    jd.Kuota,
+                    jd.Kuota, 
+                    jd.Max_Pasien,
                     jd.Hari,
                     (SELECT COUNT(*) 
                      FROM Pendaftaran 
@@ -45,22 +51,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE jd.ID_Jadwal = ?
             ");
             
-            $registrationDate = $registrationDay === 'today' ? date('Y-m-d') : date('Y-m-d', strtotime('+1 day'));
+            $scheduleCheck->bind_param("sss", $scheduleId, $registrationDate, $scheduleId);
+            $scheduleCheck->execute();
+            $scheduleInfo = $scheduleCheck->get_result()->fetch_assoc();
             
-            // Verify if selected day matches doctor's schedule
-            $dayOfWeek = date('l', strtotime($registrationDate));
-            
-            $quotaCheck->bind_param("sss", $scheduleId, $registrationDate, $scheduleId);
-            $quotaCheck->execute();
-            $quotaInfo = $quotaCheck->get_result()->fetch_assoc();
-            
-            // Check if the selected day matches the doctor's schedule
-            if (strtolower($quotaInfo['Hari']) !== strtolower($dayOfWeek)) {
-                throw new Exception("Jadwal dokter tidak tersedia untuk hari yang dipilih!");
-            }
-            
-            // Check if quota is still available
-            if ($quotaInfo['used_quota'] >= $quotaInfo['Kuota']) {
+            // Check quota availability
+            if ($scheduleInfo['used_quota'] >= $scheduleInfo['Kuota']) {
                 throw new Exception("Kuota pendaftaran untuk jadwal ini sudah penuh!");
             }
             
@@ -77,10 +73,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Insert registration
             $registerQuery = $conn->prepare("
-                INSERT INTO Pendaftaran (ID_Pasien, ID_Jadwal, Waktu_Daftar, No_Antrian, Status) 
+                INSERT INTO Pendaftaran 
+                (ID_Pasien, ID_Jadwal, Waktu_Daftar, No_Antrian, Status) 
                 VALUES (?, ?, ?, ?, 'Menunggu')
             ");
-            $registerQuery->bind_param("iisi", $patientId, $scheduleId, $registrationDate, $nextQueue);
+            $registerQuery->bind_param("iisi", 
+                $patientId, 
+                $scheduleId, 
+                $registrationDate, 
+                $nextQueue
+            );
             
             if (!$registerQuery->execute()) {
                 throw new Exception("Gagal melakukan pendaftaran: " . $conn->error);
@@ -149,7 +151,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </select>
                     </div>
 
-
                     <div class="flex items-center justify-between space-x-4">
                         <a href="patient_dashboard.php" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             Kembali
@@ -197,13 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         loadSchedules();
     });
 
-    document.getElementById('registration_day').addEventListener('change', function() {
-        loadSchedules();
-    });
-
     async function loadSchedules() {
         const doctorId = document.getElementById('doctor').value;
-        const registrationDay = document.getElementById('registration_day').value;
         const scheduleSelect = document.getElementById('schedule');
         
         // Reset schedule selection
@@ -211,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (doctorId) {
             try {
-                const response = await fetch(`get_schedule.php?doctor_id=${encodeURIComponent(doctorId)}&registration_day=${encodeURIComponent(registrationDay)}`);
+                const response = await fetch(`get_schedule.php?doctor_id=${encodeURIComponent(doctorId)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -219,9 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 schedules.forEach(schedule => {
                     const option = document.createElement('option');
                     option.value = schedule.ID_Jadwal;
-                    const quotaInfo = registrationDay === 'today' 
-                        ? schedule.Kuota - schedule.used_quota_today 
-                        : schedule.Kuota - schedule.used_quota_tomorrow;
+                    const quotaInfo = schedule.Kuota - schedule.used_quota_today;
                     option.textContent = `${schedule.Hari} - ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai} (Sisa Kuota: ${quotaInfo})`;
                     option.disabled = quotaInfo <= 0;
                     scheduleSelect.appendChild(option);
