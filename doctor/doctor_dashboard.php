@@ -86,52 +86,6 @@ $quota_result = $stmt->get_result()->fetch_assoc();
 
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-blue-100 p-3 rounded-full">
-                            <i class="fas fa-clipboard-list text-blue-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 text-sm">Total Antrian Hari Ini</p>
-                            <p class="text-2xl font-bold"><?php echo $total_result['total']; ?></p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-yellow-100 p-3 rounded-full">
-                            <i class="fas fa-user-clock text-yellow-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 text-sm">Pasien Menunggu</p>
-                            <p class="text-2xl font-bold"><?php echo $waiting_result['waiting']; ?></p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow p-6">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-green-100 p-3 rounded-full">
-                            <i class="fas fa-ticket-alt text-green-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-gray-500 text-sm">Sisa Kuota</p>
-                            <p class="text-2xl font-bold">
-                                <?php 
-                                if ($quota_result) {
-                                    echo ($quota_result['Kuota'] - $quota_result['used_quota']);
-                                } else {
-                                    echo "0";
-                                }
-                                ?>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Patient Queue -->
             <div class="bg-white rounded-lg shadow">

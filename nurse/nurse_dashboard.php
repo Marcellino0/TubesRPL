@@ -26,13 +26,118 @@ function getPendingExaminations($conn)
     $result = $conn->query($sql);
     return $result;
 }
+// Handle form submission for medical record and file upload
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
+    $id_pasien = $_POST['id_pasien'];
+    $tekanan_darah = $_POST['tekanan_darah'];
+    $tinggi_badan = $_POST['tinggi_badan'];
+    $berat_badan = $_POST['berat_badan'];
+    $suhu = $_POST['suhu'];
+    $riwayat = $_POST['riwayat_penyakit'];
+    $tanggal = date('Y-m-d');
 
-// Existing form submission code remains the same...
+    // Insert rekam medis
+    $sql_rekam_medis = "INSERT INTO rekam_medis (ID_Pasien, Tekanan_Darah, Tinggi_Badan, Berat_Badan, 
+                        Suhu, Riwayat_Penyakit, Tanggal) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql_rekam_medis);
+    $stmt->bind_param(
+        "isdddss",
+        $id_pasien,
+        $tekanan_darah,
+        $tinggi_badan,
+        $berat_badan,
+        $suhu,
+        $riwayat,
+        $tanggal
+    );
+
+    if ($stmt->execute()) {
+        $rekam_medis_id = $stmt->insert_id; // ID Rekam Medis yang baru ditambahkan
+
+        // Handle file uploads jika ada
+        if (!empty($_FILES['dokumen']['name'][0])) {
+            $upload_dir = __DIR__ . '/uploads/' . $id_pasien . '/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true); // Buat folder jika belum ada
+            }
+
+            $uploaded_files = $_FILES['dokumen'];
+            $file_count = count($uploaded_files['name']);
+            $upload_success = true;
+
+            for ($i = 0; $i < $file_count; $i++) {
+                $file_name = basename($uploaded_files['name'][$i]);
+                $file_tmp = $uploaded_files['tmp_name'][$i];
+                $file_error = $uploaded_files['error'][$i];
+                $jenis_dokumen = $_POST['jenis_dokumen'][$i];
+                $keterangan = $_POST['keterangan_dokumen'][$i];
+
+                // Validasi file
+                $allowed_types = ['pdf', 'jpg', 'jpeg', 'png'];
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+                if (!in_array($file_ext, $allowed_types)) {
+                    $_SESSION['error'] = "Format file tidak valid untuk $file_name.";
+                    continue;
+                }
+
+                if ($uploaded_files['size'][$i] > 5242880) { // Maksimal 5MB
+                    $_SESSION['error'] = "File $file_name melebihi ukuran maksimum 5MB.";
+                    continue;
+                }
+
+                // Pindahkan file ke folder tujuan
+                $new_file_name = uniqid('doc_') . '.' . $file_ext;
+                $file_path = $upload_dir . $new_file_name;
+
+                if (move_uploaded_file($file_tmp, $file_path)) {
+                    // Insert ke tabel dokumen_medis
+                    $sql_dokumen = "INSERT INTO dokumen_medis (ID_Pasien, Nama_File, Jenis_Dokumen, 
+                                    Keterangan, Tanggal_Upload, Path_File) 
+                                    VALUES (?, ?, ?, ?, NOW(), ?)";
+                    $stmt_dokumen = $conn->prepare($sql_dokumen);
+                    $stmt_dokumen->bind_param(
+                        "issss",
+                        $id_pasien,
+                        $new_file_name,
+                        $jenis_dokumen,
+                        $keterangan,
+                        $file_path
+                    );
+
+                    if (!$stmt_dokumen->execute()) {
+                        $upload_success = false;
+                        error_log("Error inserting file to database: " . $stmt_dokumen->error);
+                    }
+                } else {
+                    $upload_success = false;
+                    error_log("Failed to move uploaded file: " . $file_name);
+                }
+            }
+
+            // Tampilkan pesan sukses atau error
+            if ($upload_success) {
+                $_SESSION['success'] = "Rekam medis dan file dokumen berhasil ditambahkan.";
+            } else {
+                $_SESSION['error'] = "Rekam medis berhasil, tetapi beberapa file gagal diunggah.";
+            }
+        } else {
+            $_SESSION['success'] = "Rekam medis berhasil ditambahkan tanpa dokumen.";
+        }
+    } else {
+        $_SESSION['error'] = "Gagal menambahkan rekam medis: " . $conn->error;
+    }
+
+    // Redirect ke dashboard
+    header("Location: nurse_dashboard.php");
+    exit();
+}
+
 
 // Get today's pending examinations
 $pendingExaminations = getPendingExaminations($conn);
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 
