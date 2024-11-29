@@ -109,6 +109,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -116,6 +117,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
@@ -131,7 +133,8 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                         <i class="fas fa-calendar-alt"></i>
                         <span>Jadwal Dokter</span>
                     </a>
-                    <a href="register_appointment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <a href="register_appointment.php"
+                        class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-plus-circle"></i>
                         <span>Buat Janji</span>
                     </a>
@@ -139,7 +142,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                         <i class="fas fa-file-medical"></i>
                         <span>Riwayat Medis</span>
                     </a>
-                    <a href="payment_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <a href="payment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-receipt"></i>
                         <span>Pembayaran</span>
                     </a>
@@ -159,7 +162,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                 </a>
             </div>
 
-            
+
         </aside>
 
         <!-- Main Content -->
@@ -171,6 +174,26 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                         <h2 class="text-xl font-bold">Hasil Pemeriksaan Terakhir</h2>
                         <a href="medical_history.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
                     </div>
+
+                    <!-- Add payment status action buttons -->
+                    <?php foreach ($paymentHistory as $payment): ?>
+                        <tr>
+                            <!-- ... existing payment row columns ... -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span
+                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                <?php echo $payment['Status'] === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                    <?php echo htmlspecialchars($payment['Status']); ?>
+                                </span>
+                                <?php if ($payment['Status'] === 'Pending'): ?>
+                                    <a href="payment.php?id=<?php echo $payment['ID_Pembayaran']; ?>"
+                                        class="ml-2 text-blue-600 hover:text-blue-800 text-sm">
+                                        Bayar Sekarang
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
                     <?php if (empty($examResults)): ?>
                         <p class="text-gray-500">Belum ada riwayat pemeriksaan</p>
                     <?php else: ?>
@@ -224,7 +247,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                                 <?php endif; ?>
                                             </div>
                                         </div>
-                                        
+
                                         <div>
                                             <h4 class="font-medium text-gray-700 mb-2">Diagnosa:</h4>
                                             <p class="text-sm text-gray-600">
@@ -234,15 +257,15 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                     </div>
 
                                     <?php if ($exam['Resep_Obat']): ?>
-                                    <div class="mt-4 border-t pt-4">
-                                        <h4 class="font-medium text-gray-700 mb-2">Resep Obat:</h4>
-                                        <p class="text-sm text-gray-600">
-                                            <?php echo nl2br(htmlspecialchars($exam['Resep_Obat'])); ?>
-                                        </p>
-                                    </div>
+                                        <div class="mt-4 border-t pt-4">
+                                            <h4 class="font-medium text-gray-700 mb-2">Resep Obat:</h4>
+                                            <p class="text-sm text-gray-600">
+                                                <?php echo nl2br(htmlspecialchars($exam['Resep_Obat'])); ?>
+                                            </p>
+                                        </div>
                                     <?php endif; ?>
 
-                                    
+
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -256,7 +279,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">Riwayat Pembayaran</h2>
-                        <a href="payment_history.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
+                        <a href="payment.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
                     </div>
                     <?php if (empty($paymentHistory)): ?>
                         <p class="text-gray-500">Belum ada riwayat pembayaran</p>
@@ -265,16 +288,20 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead>
                                     <tr>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th
+                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Tanggal
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th
+                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Dokter
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th
+                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Jumlah
                                         </th>
-                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th
+                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Status
                                         </th>
                                     </tr>
@@ -286,13 +313,14 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                                 <?php echo date('d/m/Y', strtotime($payment['Tanggal'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                              <?php echo htmlspecialchars($payment['nama_dokter']); ?>
+                                                <?php echo htmlspecialchars($payment['nama_dokter']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                <span
+                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                                     <?php echo $payment['Status'] === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
                                                     <?php echo htmlspecialchars($payment['Status']); ?>
                                                 </span>
@@ -307,62 +335,65 @@ $stats = $conn->query($query_stats)->fetch_assoc();
             </div>
 
             <div class="bg-white rounded-lg shadow mt-8">
-    <div class="p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold">Pendaftaran Aktif</h2>
-            <a href="my_registrations.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
-        </div>
-        <?php if (empty($activeRegistrations)): ?>
-            <p class="text-gray-500">Tidak ada pendaftaran aktif</p>
-        <?php else: ?>
-            <div class="space-y-4">
-                <?php foreach ($activeRegistrations as $registration): ?>
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 class="font-semibold text-lg">
-                                    Dr. <?php echo htmlspecialchars($registration['nama_dokter']); ?>
-                                    <span class="text-sm text-gray-600">
-                                        (<?php echo htmlspecialchars($registration['Spesialis']); ?>)
-                                    </span>
-                                </h3>
-                                <p class="text-sm text-gray-600">
-                                    <?php echo htmlspecialchars($registration['Hari']); ?>, 
-                                    <?php echo htmlspecialchars($registration['Jam_Mulai']); ?> - 
-                                    <?php echo htmlspecialchars($registration['Jam_Selesai']); ?>
-                                </p>
-                            </div>
-                            <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                                No. Antrian: <?php echo htmlspecialchars($registration['No_Antrian']); ?>
-                            </span>
-                        </div>
-
-                        <?php if ($registration['Bukti_Reservasi']): ?>
-                            <div class="mt-4 border-t pt-4">
-                                <h4 class="font-medium text-gray-700 mb-2">Bukti Reservasi:</h4>
-                                <div class="flex items-center space-x-4">
-                                    <?php 
-                                    $filePath = "../uploads/bukti_reservasi/" . htmlspecialchars($registration['Bukti_Reservasi']);
-                                    $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                                    ?>
-                                    <?php if (in_array($fileExtension, ['jpg', 'jpeg', 'png'])): ?>
-                                        <img src="<?php echo $filePath; ?>" alt="Bukti Reservasi" class="h-24 w-auto rounded-lg object-cover">
-                                    <?php elseif ($fileExtension === 'pdf'): ?>
-                                        <i class="fas fa-file-pdf text-4xl text-red-500"></i>
-                                    <?php endif; ?>
-                                    <a href="<?php echo $filePath; ?>" target="_blank" class="text-blue-600 hover:text-blue-800 underline">
-                                        Lihat Bukti Reservasi
-                                    </a>
-                                </div>
-                            </div>
-                        <?php endif; ?>
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Pendaftaran Aktif</h2>
+                        <a href="my_registrations.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
                     </div>
-                <?php endforeach; ?>
+                    <?php if (empty($activeRegistrations)): ?>
+                        <p class="text-gray-500">Tidak ada pendaftaran aktif</p>
+                    <?php else: ?>
+                        <div class="space-y-4">
+                            <?php foreach ($activeRegistrations as $registration): ?>
+                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h3 class="font-semibold text-lg">
+                                                Dr. <?php echo htmlspecialchars($registration['nama_dokter']); ?>
+                                                <span class="text-sm text-gray-600">
+                                                    (<?php echo htmlspecialchars($registration['Spesialis']); ?>)
+                                                </span>
+                                            </h3>
+                                            <p class="text-sm text-gray-600">
+                                                <?php echo htmlspecialchars($registration['Hari']); ?>,
+                                                <?php echo htmlspecialchars($registration['Jam_Mulai']); ?> -
+                                                <?php echo htmlspecialchars($registration['Jam_Selesai']); ?>
+                                            </p>
+                                        </div>
+                                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                            No. Antrian: <?php echo htmlspecialchars($registration['No_Antrian']); ?>
+                                        </span>
+                                    </div>
+
+                                    <?php if ($registration['Bukti_Reservasi']): ?>
+                                        <div class="mt-4 border-t pt-4">
+                                            <h4 class="font-medium text-gray-700 mb-2">Bukti Reservasi:</h4>
+                                            <div class="flex items-center space-x-4">
+                                                <?php
+                                                $filePath = "../uploads/bukti_reservasi/" . htmlspecialchars($registration['Bukti_Reservasi']);
+                                                $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                                                ?>
+                                                <?php if (in_array($fileExtension, ['jpg', 'jpeg', 'png'])): ?>
+                                                    <img src="<?php echo $filePath; ?>" alt="Bukti Reservasi"
+                                                        class="h-24 w-auto rounded-lg object-cover">
+                                                <?php elseif ($fileExtension === 'pdf'): ?>
+                                                    <i class="fas fa-file-pdf text-4xl text-red-500"></i>
+                                                <?php endif; ?>
+                                                <a href="<?php echo $filePath; ?>" target="_blank"
+                                                    class="text-blue-600 hover:text-blue-800 underline">
+                                                    Lihat Bukti Reservasi
+                                                </a>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
-        <?php endif; ?>
-    </div>
-</div>
         </main>
     </div>
 </body>
+
 </html>
