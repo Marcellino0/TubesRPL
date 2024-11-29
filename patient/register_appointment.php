@@ -43,12 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     jd.Kuota, 
                     jd.Max_Pasien,
                     jd.Hari,
-                    (SELECT COUNT(*) 
-                     FROM Pendaftaran 
-                     WHERE ID_Jadwal = ? 
-                     AND DATE(Waktu_Daftar) = DATE(?)) as used_quota
+                    COALESCE((
+                        SELECT COUNT(*) 
+                        FROM Pendaftaran 
+                        WHERE ID_Jadwal = ? 
+                        AND DATE(Waktu_Daftar) = ?
+                    ), 0) as used_quota
                 FROM Jadwal_Dokter jd
                 WHERE jd.ID_Jadwal = ?
+                FOR UPDATE
             ");
             
             $scheduleCheck->bind_param("sss", $scheduleId, $registrationDate, $scheduleId);
@@ -65,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 SELECT COALESCE(MAX(No_Antrian), 0) + 1 as next_queue 
                 FROM Pendaftaran 
                 WHERE ID_Jadwal = ? 
-                AND DATE(Waktu_Daftar) = DATE(?)
+                AND DATE(Waktu_Daftar) = ?
             ");
             $queueQuery->bind_param("ss", $scheduleId, $registrationDate);
             $queueQuery->execute();
@@ -86,6 +89,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if (!$registerQuery->execute()) {
                 throw new Exception("Gagal melakukan pendaftaran: " . $conn->error);
+            }
+
+            // Update the quota in Jadwal_Dokter
+            $updateQuotaQuery = $conn->prepare("
+                UPDATE Jadwal_Dokter 
+                SET Kuota = Kuota - 1 
+                WHERE ID_Jadwal = ? 
+                AND Kuota > 0
+            ");
+            $updateQuotaQuery->bind_param("i", $scheduleId);
+            
+            if (!$updateQuotaQuery->execute()) {
+                throw new Exception("Gagal mengupdate kuota: " . $conn->error);
             }
             
             $conn->commit();
