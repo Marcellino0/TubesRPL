@@ -122,7 +122,7 @@ $registrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             <div class="flex justify-between items-start mb-4">
                                 <div>
                                     <h2 class="text-xl font-semibold">
-                                        Dr. <?php echo htmlspecialchars($reg['nama_dokter']); ?>
+                                        <?php echo htmlspecialchars($reg['nama_dokter']); ?>
                                         <span class="text-sm text-gray-600">
                                             (<?php echo htmlspecialchars($reg['Spesialis']); ?>)
                                         </span>
