@@ -2,7 +2,7 @@
     $db_server ="localhost";
     $db_user ="root";
     $db_pass ="";
-    $db_name ="PoliklinikX";
+    $db_name ="tokokapi";
     $conn ="";
 
     $conn =mysqli_connect($db_server, 
