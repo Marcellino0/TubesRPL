@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Check if username already exists
     $checkUsername = "SELECT Username FROM Pasien WHERE Username = '$username'";
     $result = sqlsrv_query($conn, $checkUsername);
-    
+        
     if(sqlsrv_has_rows($result)) {
         $_SESSION['error'] = "Username sudah digunakan. Silakan pilih username lain.";
         header("Location: register.php");

@@ -346,33 +346,7 @@ if ($activeSession) {
             </form>
         </div>
 
-        <div class="info-box">
-            <h3>Informasi Poliklinik</h3>
-            <div class="info-content">
-                <div class="info-item">
-                    <h4>Jam Operasional</h4>
-                    <p>Senin - Jumat: 08:00 - 20:00</p>
-                    <p>Sabtu: 08:00 - 15:00</p>
-                    <p>Minggu & Hari Libur: Tutup</p>
-                </div>
-                <div class="info-item">
-                    <h4>Layanan Tersedia</h4>
-                    <ul>
-                        <li>Poli Umum</li>
-                        <li>Poli Gigi</li>
-                        <li>Poli Anak</li>
-                        <li>Poli Penyakit Dalam</li>
-                        <li>Dan lainnya</li>
-                    </ul>
-                </div>
-                <div class="info-item">
-                    <h4>Kontak Darurat</h4>
-                    <p>Telepon: (021) 1234567</p>
-                    <p>WhatsApp: 0812-3456-7890</p>
-                    <p>Email: info@poliklinik-x.com</p>
-                </div>
-            </div>
-        </div>
+        
     </div>
 
     <script>
