@@ -10,33 +10,18 @@ $specialists = $conn->query($query_specialists)->fetch_all(MYSQLI_ASSOC);
 $search_doctor = isset($_GET['search_doctor']) ? $_GET['search_doctor'] : '';
 $selected_specialist = isset($_GET['specialist']) ? $_GET['specialist'] : '';
 
-// Build the query
+// Build the base query joining dokter and jadwal_dokter tables
 $query = "SELECT 
+    d.ID_Dokter,
     d.Nama as nama_dokter,
     d.Spesialis,
-    GROUP_CONCAT(
-        CONCAT(
-            jd.Hari, 
-            ' (', 
-            TIME_FORMAT(jd.Jam_Mulai, '%H:%i'),
-            ' - ',
-            TIME_FORMAT(jd.Jam_Selesai, '%H:%i'),
-            ') - ',
-            CASE 
-                WHEN (SELECT COUNT(*) FROM Pendaftaran p 
-                      WHERE p.ID_Jadwal = jd.ID_Jadwal 
-                      AND DATE(p.Waktu_Daftar) = CURDATE()) >= jd.Kuota 
-                THEN 'Kuota Penuh'
-                ELSE CONCAT('Tersedia ', 
-                          jd.Kuota - (SELECT COUNT(*) FROM Pendaftaran p 
-                                     WHERE p.ID_Jadwal = jd.ID_Jadwal 
-                                     AND DATE(p.Waktu_Daftar) = CURDATE()),
-                          ' slot')
-            END
-        ) SEPARATOR '\n'
-    ) as jadwal_detail
-FROM Dokter d
-LEFT JOIN Jadwal_Dokter jd ON d.ID_Dokter = jd.ID_Dokter
+    jd.Hari,
+    jd.Jam_Mulai,
+    jd.Jam_Selesai,
+    jd.Kuota,
+    jd.Status
+FROM dokter d
+LEFT JOIN jadwal_dokter jd ON d.ID_Dokter = jd.ID_Dokter
 WHERE jd.Status = 'Aktif'";
 
 if (!empty($search_doctor)) {
@@ -46,7 +31,7 @@ if (!empty($selected_specialist)) {
     $query .= " AND d.Spesialis = ?";
 }
 
-$query .= " GROUP BY d.ID_Dokter, d.Nama, d.Spesialis ORDER BY d.Nama";
+$query .= " ORDER BY d.Nama, FIELD(jd.Hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')";
 
 $stmt = $conn->prepare($query);
 
@@ -62,7 +47,28 @@ if (!empty($search_doctor) && !empty($selected_specialist)) {
 }
 
 $stmt->execute();
-$schedules = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$result = $stmt->get_result();
+
+// Process the results to group schedules by doctor
+$schedules = [];
+while ($row = $result->fetch_assoc()) {
+    $doctorId = $row['ID_Dokter'];
+    if (!isset($schedules[$doctorId])) {
+        $schedules[$doctorId] = [
+            'nama_dokter' => $row['nama_dokter'],
+            'Spesialis' => $row['Spesialis'],
+            'jadwal' => []
+        ];
+    }
+    if ($row['Hari']) {  // Only add if there's a schedule
+        $schedules[$doctorId]['jadwal'][] = [
+            'hari' => $row['Hari'],
+            'jam_mulai' => $row['Jam_Mulai'],
+            'jam_selesai' => $row['Jam_Selesai'],
+            'kuota' => $row['Kuota']
+        ];
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -135,12 +141,17 @@ $schedules = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         Spesialis <?php echo htmlspecialchars($schedule['Spesialis']); ?>
                                     </p>
                                     <div class="mt-2 space-y-1">
-                                        <?php 
-                                        $jadwal_array = explode("\n", $schedule['jadwal_detail']);
-                                        foreach ($jadwal_array as $jadwal): 
-                                        ?>
+                                        <?php foreach ($schedule['jadwal'] as $jadwal): ?>
                                             <p class="text-sm text-gray-600">
-                                                <?php echo htmlspecialchars($jadwal); ?>
+                                                <?php 
+                                                echo htmlspecialchars(sprintf(
+                                                    "%s (%s - %s) - %s",
+                                                    $jadwal['hari'],
+                                                    date('H:i', strtotime($jadwal['jam_mulai'])),
+                                                    date('H:i', strtotime($jadwal['jam_selesai'])),
+                                                    sprintf('Kuota: %d pasien', $jadwal['kuota'])
+                                                ));
+                                                ?>
                                             </p>
                                         <?php endforeach; ?>
                                     </div>
