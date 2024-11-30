@@ -1,43 +1,88 @@
 <?php
 session_start();
-require_once('db_connection.php');
+require_once('../config/db_connection.php');
 
-if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
-    header("Location: login.php");
+if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
+    header("Location: index.php");
     exit();
 }
 
-if(!isset($_GET['id'])) {
-    header("Location: my_appointments.php");
-    exit();
-}
+// Get pending payments
+$stmt = $conn->prepare("
+    SELECT 
+        p.ID_Pembayaran,
+        p.ID_Pendaftaran,
+        p.Jumlah,
+        p.Status,
+        p.Tanggal,
+        d.Nama as nama_dokter,
+        d.Spesialis,
+        mp.ID_Metode,
+        mp.Nama_Metode
+    FROM Pembayaran p
+    JOIN Pendaftaran pend ON p.ID_Pendaftaran = pend.ID_Pendaftaran
+    JOIN Jadwal_Dokter jd ON pend.ID_Jadwal = jd.ID_Jadwal
+    JOIN Dokter d ON jd.ID_Dokter = d.ID_Dokter
+    LEFT JOIN Detail_Pembayaran dp ON p.ID_Pembayaran = dp.ID_Pembayaran
+    LEFT JOIN Metode_Pembayaran mp ON dp.ID_Metode = mp.ID_Metode
+    WHERE pend.ID_Pasien = ? AND p.Status = 'Pending'
+    ORDER BY p.Tanggal DESC
+");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$pendingPayments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-$conn = connectDB();
-$pembayaran_id = intval($_GET['id']);
-$pasien_id = $_SESSION['user_id'];
+// Get payment methods
+$paymentMethods = $conn->query("SELECT * FROM Metode_Pembayaran WHERE Status = 'Aktif'")->fetch_all(MYSQLI_ASSOC);
 
-// Get payment details
-$sql = "SELECT pb.*, p.ID_Pasien, p.No_Antrian, 
-        pas.Nama as nama_pasien, pas.Nomor_Rekam_Medis,
-        d.Nama as nama_dokter, d.Spesialis,
-        pem.Diagnosa, r.Resep_Obat
-        FROM Pembayaran pb
-        JOIN Pendaftaran p ON pb.ID_Pendaftaran = p.ID_Pendaftaran
-        JOIN Pasien pas ON p.ID_Pasien = pas.ID_Pasien
-        JOIN Jadwal_Dokter j ON p.ID_Jadwal = j.ID_Jadwal
-        JOIN Dokter d ON j.ID_Dokter = d.ID_Dokter
-        LEFT JOIN Pemeriksaan pem ON p.ID_Pendaftaran = pem.ID_Pendaftaran
-        LEFT JOIN Resep r ON pem.ID_Pemeriksaan = r.ID_Pemeriksaan
-        WHERE pb.ID_Pembayaran = $pembayaran_id 
-        AND p.ID_Pasien = $pasien_id";
-
-$result = sqlsrv_query($conn, $sql);
-$payment = sqlsrv_fetch_array($result);
-
-if(!$payment || $payment['Status'] == 'Lunas') {
-    $_SESSION['error'] = "Pembayaran tidak ditemukan atau sudah lunas";
-    header("Location: my_appointments.php");
-    exit();
+// Process payment submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $paymentId = $_POST['payment_id'];
+    $methodId = $_POST['payment_method'];
+    $referenceNumber = $_POST['reference_number'];
+    
+    // Handle file upload
+    $uploadDir = '../uploads/bukti_pembayaran/';
+    $fileName = '';
+    
+    if (isset($_FILES['payment_proof']) && $_FILES['payment_proof']['error'] === 0) {
+        $fileName = time() . '_' . $_FILES['payment_proof']['name'];
+        move_uploaded_file($_FILES['payment_proof']['tmp_name'], $uploadDir . $fileName);
+    }
+    
+    // Begin transaction
+    $conn->begin_transaction();
+    
+    try {
+        // Insert payment detail
+        $stmt = $conn->prepare("
+            INSERT INTO Detail_Pembayaran (
+                ID_Pembayaran, 
+                ID_Metode, 
+                Nomor_Referensi, 
+                Bukti_Pembayaran
+            ) VALUES (?, ?, ?, ?)
+        ");
+        $stmt->bind_param("iiss", $paymentId, $methodId, $referenceNumber, $fileName);
+        $stmt->execute();
+        
+        // Update payment status
+        $stmt = $conn->prepare("
+            UPDATE Pembayaran 
+            SET Status = 'Menunggu Verifikasi'
+            WHERE ID_Pembayaran = ?
+        ");
+        $stmt->bind_param("i", $paymentId);
+        $stmt->execute();
+        
+        $conn->commit();
+        $_SESSION['success_message'] = "Pembayaran berhasil disubmit dan menunggu verifikasi";
+        header("Location: payment_history.php");
+        exit();
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['error_message'] = "Terjadi kesalahan dalam proses pembayaran";
+    }
 }
 ?>
 
@@ -47,130 +92,107 @@ if(!$payment || $payment['Status'] == 'Lunas') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pembayaran - Poliklinik X</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <nav class="nav">
-        <ul>
-            <li><a href="patient_dashboard.php">Dashboard</a></li>
-            <li><a href="my_appointments.php">Kembali ke Riwayat</a></li>
-            <li><a href="logout.php">Logout</a></li>
-        </ul>
-    </nav>
-
-    <div class="container">
-        <?php if(isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger">
-                <?php 
-                echo $_SESSION['error'];
-                unset($_SESSION['error']);
-                ?>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">Pembayaran Pending</h1>
+        
+        <?php if (empty($pendingPayments)): ?>
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-gray-500">Tidak ada pembayaran pending</p>
             </div>
-        <?php endif; ?>
-
-        <div class="card">
-            <div class="card-header">
-                <h2>Detail Pembayaran</h2>
-            </div>
-            <div class="card-body">
-                <div class="payment-info">
-                    <div class="info-section">
-                        <h3>Informasi Pasien</h3>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <label>Nama:</label>
-                                <span><?php echo $payment['nama_pasien']; ?></span>
-                            </div>
-                            <div class="info-item">
-                                <label>No. RM:</label>
-                                <span><?php echo $payment['Nomor_Rekam_Medis']; ?></span>
-                            </div>
-                            <div class="info-item">
-                                <label>No. Antrian:</label>
-                                <span><?php echo $payment['No_Antrian']; ?></span>
-                            </div>
+        <?php else: ?>
+            <?php foreach ($pendingPayments as $payment): ?>
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-xl font-semibold">
+                                Pembayaran #<?php echo $payment['ID_Pembayaran']; ?>
+                            </h2>
+                            <p class="text-gray-600">
+                                Dr. <?php echo htmlspecialchars($payment['nama_dokter']); ?> 
+                                (<?php echo htmlspecialchars($payment['Spesialis']); ?>)
+                            </p>
+                            <p class="text-gray-500 text-sm">
+                                <?php echo date('d F Y', strtotime($payment['Tanggal'])); ?>
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold">
+                                Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?>
+                            </p>
+                            <span class="px-2 py-1 rounded-full text-sm 
+                                <?php echo $payment['Status'] === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'; ?>">
+                                <?php echo $payment['Status']; ?>
+                            </span>
                         </div>
                     </div>
 
-                    <div class="info-section">
-                        <h3>Detail Pemeriksaan</h3>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <label>Dokter:</label>
-                                <span><?php echo $payment['nama_dokter']; ?></span>
-                            </div>
-                            <div class="info-item">
-                                <label>Spesialis:</label>
-                                <span><?php echo $payment['Spesialis']; ?></span>
-                            </div>
-                            <div class="info-item">
-                                <label>Diagnosa:</label>
-                                <span><?php echo $payment['Diagnosa']; ?></span>
-                            </div>
-                            <div class="info-item">
-                                <label>Resep:</label>
-                                <span><?php echo $payment['Resep_Obat']; ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="info-section">
-                        <h3>Rincian Biaya</h3>
-                        <div class="payment-details">
-                            <div class="payment-item">
-                                <span class="item-name">Biaya Konsultasi</span>
-                                <span class="item-price">Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <form action="process_payment.php" method="POST" class="payment-form">
-                        <input type="hidden" name="pembayaran_id" value="<?php echo $pembayaran_id; ?>">
+                    <form action="" method="POST" enctype="multipart/form-data" class="mt-6">
+                        <input type="hidden" name="payment_id" value="<?php echo $payment['ID_Pembayaran']; ?>">
                         
-                        <div class="form-group">
-                            <label for="metode">Metode Pembayaran:</label>
-                            <select id="metode" name="metode" required>
-                                <option value="">Pilih Metode Pembayaran</option>
-                                <option value="Transfer Bank">Transfer Bank</option>
-                                <option value="Kartu Debit">Kartu Debit</option>
-                                <option value="Kartu Kredit">Kartu Kredit</option>
-                                <option value="Tunai">Tunai</option>
-                            </select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Metode Pembayaran
+                                </label>
+                                <select name="payment_method" required 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Pilih metode pembayaran</option>
+                                    <?php foreach ($paymentMethods as $method): ?>
+                                        <option value="<?php echo $method['ID_Metode']; ?>">
+                                            <?php echo htmlspecialchars($method['Nama_Metode']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nomor Referensi
+                                </label>
+                                <input type="text" name="reference_number" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Masukkan nomor referensi pembayaran">
+                            </div>
                         </div>
 
-                        <div id="bankDetails" class="form-group" style="display: none;">
-                            <label for="bank">Bank:</label>
-                            <select id="bank" name="bank">
-                                <option value="">Pilih Bank</option>
-                                <option value="BCA">BCA</option>
-                                <option value="Mandiri">Mandiri</option>
-                                <option value="BNI">BNI</option>
-                                <option value="BRI">BRI</option>
-                            </select>
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Bukti Pembayaran
+                            </label>
+                            <input type="file" name="payment_proof" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                accept="image/*,.pdf">
+                            <p class="mt-1 text-sm text-gray-500">
+                                Format yang diterima: JPG, PNG, PDF. Maksimal 5MB
+                            </p>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Proses Pembayaran</button>
+                        <div class="mt-6">
+                            <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                Submit Pembayaran
+                            </button>
+                        </div>
                     </form>
                 </div>
-            </div>
-        </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 
     <script>
-        document.getElementById('metode').addEventListener('change', function() {
-            const bankDetails = document.getElementById('bankDetails');
-            if(this.value === 'Transfer Bank') {
-                bankDetails.style.display = 'block';
-                document.getElementById('bank').required = true;
-            } else {
-                bankDetails.style.display = 'none';
-                document.getElementById('bank').required = false;
-            }
+        // Add client-side validation if needed
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const fileInput = this.querySelector('input[type="file"]');
+                if (fileInput.files[0] && fileInput.files[0].size > 5 * 1024 * 1024) {
+                    e.preventDefault();
+                    alert('Ukuran file tidak boleh lebih dari 5MB');
+                }
+            });
         });
     </script>
 </body>
 </html>
-
-<?php
-closeDB($conn);
-?>

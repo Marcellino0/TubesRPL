@@ -103,7 +103,7 @@ $examinations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             <div>
                                 <div class="flex items-center space-x-2">
                                     <h3 class="text-lg font-semibold">
-                                        Pemeriksaan oleh Dr. <?php echo htmlspecialchars($exam['nama_dokter']); ?>
+                                        Pemeriksaan oleh <?php echo htmlspecialchars($exam['nama_dokter']); ?>
                                     </h3>
                                     <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
                                         <?php echo htmlspecialchars($exam['Spesialis']); ?>
@@ -138,19 +138,6 @@ $examinations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                             <?php endif; ?>
                         </div>
 
-                        <div class="mt-4 pt-4 border-t">
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">
-                                    Biaya Pemeriksaan: Rp <?php echo number_format($exam['biaya_pemeriksaan'], 0, ',', '.'); ?>
-                                </span>
-                                <?php if ($exam['status_pembayaran'] !== 'Lunas'): ?>
-                                    <a href="payment.php?id=<?php echo $exam['ID_Pemeriksaan']; ?>" 
-                                       class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                        Bayar Sekarang
-                                    </a>
-                                <?php endif; ?>
-                            </div>
-                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
