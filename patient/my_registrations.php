@@ -80,7 +80,7 @@ $registrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     </a>
                     <a href="medical_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-file-medical"></i>
-                        <span>Riwayat Medis</span>
+                        <span>Hasil Pemeriksaan</span>
                     </a>
                     <a href="payment_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-receipt"></i>
