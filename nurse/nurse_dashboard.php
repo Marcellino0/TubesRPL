@@ -13,7 +13,8 @@ function getPendingExaminations($conn)
 {
     $sql = "SELECT p.ID_Pendaftaran, ps.ID_Pasien, ps.Nama as nama_pasien, ps.Nomor_Rekam_Medis, 
             d.Nama as nama_dokter, p.No_Antrian, p.Waktu_Daftar, p.Status,
-            rm.ID_Rekam as rekam_exists
+            rm.ID_Rekam as rekam_exists, rm.Tekanan_Darah, rm.Tinggi_Badan, 
+            rm.Berat_Badan, rm.Suhu, rm.Riwayat_Penyakit
             FROM pendaftaran p
             JOIN pasien ps ON p.ID_Pasien = ps.ID_Pasien
             JOIN jadwal_dokter j ON p.ID_Jadwal = j.ID_Jadwal
@@ -26,7 +27,106 @@ function getPendingExaminations($conn)
     $result = $conn->query($sql);
     return $result;
 }
-// Handle form submission for medical record and file upload
+// Handle form submission for medical record update
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
+    $id_rekam = $_POST['id_rekam'];
+    $tekanan_darah = $_POST['tekanan_darah'];
+    $tinggi_badan = $_POST['tinggi_badan'];
+    $berat_badan = $_POST['berat_badan'];
+    $suhu = $_POST['suhu'];
+    $riwayat = $_POST['riwayat_penyakit'];
+
+    // Update rekam medis
+    $sql_update = "UPDATE rekam_medis SET 
+                   Tekanan_Darah = ?, 
+                   Tinggi_Badan = ?, 
+                   Berat_Badan = ?, 
+                   Suhu = ?, 
+                   Riwayat_Penyakit = ?
+                   WHERE ID_Rekam = ?";
+    
+    $stmt = $conn->prepare($sql_update);
+    $stmt->bind_param(
+        "sdddsi",
+        $tekanan_darah,
+        $tinggi_badan,
+        $berat_badan,
+        $suhu,
+        $riwayat,
+        $id_rekam
+    );
+
+    if ($stmt->execute()) {
+        // Handle new file uploads if any
+        if (!empty($_FILES['dokumen']['name'][0])) {
+            $id_pasien = $_POST['id_pasien'];
+            $upload_dir = __DIR__ . '/uploads/' . $id_pasien . '/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+
+            $uploaded_files = $_FILES['dokumen'];
+            $file_count = count($uploaded_files['name']);
+            $upload_success = true;
+
+            for ($i = 0; $i < $file_count; $i++) {
+                // Process new file uploads similarly to the original code
+                $file_name = basename($uploaded_files['name'][$i]);
+                $file_tmp = $uploaded_files['tmp_name'][$i];
+                $file_error = $uploaded_files['error'][$i];
+                $jenis_dokumen = $_POST['jenis_dokumen'][$i];
+                $keterangan = $_POST['keterangan_dokumen'][$i];
+
+                $allowed_types = ['pdf', 'jpg', 'jpeg', 'png'];
+                $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+
+                if (!in_array($file_ext, $allowed_types)) {
+                    $_SESSION['error'] = "Format file tidak valid untuk $file_name.";
+                    continue;
+                }
+
+                if ($uploaded_files['size'][$i] > 5242880) {
+                    $_SESSION['error'] = "File $file_name melebihi ukuran maksimum 5MB.";
+                    continue;
+                }
+
+                $new_file_name = uniqid('doc_') . '.' . $file_ext;
+                $file_path = $upload_dir . $new_file_name;
+
+                if (move_uploaded_file($file_tmp, $file_path)) {
+                    $sql_dokumen = "INSERT INTO dokumen_medis (ID_Pasien, Nama_File, Jenis_Dokumen, 
+                                    Keterangan, Tanggal_Upload, Path_File) 
+                                    VALUES (?, ?, ?, ?, NOW(), ?)";
+                    $stmt_dokumen = $conn->prepare($sql_dokumen);
+                    $stmt_dokumen->bind_param(
+                        "issss",
+                        $id_pasien,
+                        $new_file_name,
+                        $jenis_dokumen,
+                        $keterangan,
+                        $file_path
+                    );
+
+                    if (!$stmt_dokumen->execute()) {
+                        $upload_success = false;
+                        error_log("Error inserting file to database: " . $stmt_dokumen->error);
+                    }
+                } else {
+                    $upload_success = false;
+                    error_log("Failed to move uploaded file: " . $file_name);
+                }
+            }
+        }
+        $_SESSION['success'] = "Rekam medis berhasil diperbarui.";
+    } else {
+        $_SESSION['error'] = "Gagal memperbarui rekam medis: " . $conn->error;
+    }
+
+    header("Location: nurse_dashboard.php");
+    exit();
+}
+
+// Handle form submission for NEW medical record and file upload
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
     $id_pasien = $_POST['id_pasien'];
     $tekanan_darah = $_POST['tekanan_darah'];
@@ -53,13 +153,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
     );
 
     if ($stmt->execute()) {
-        $rekam_medis_id = $stmt->insert_id; // ID Rekam Medis yang baru ditambahkan
+        $rekam_medis_id = $stmt->insert_id;
 
         // Handle file uploads jika ada
         if (!empty($_FILES['dokumen']['name'][0])) {
             $upload_dir = __DIR__ . '/uploads/' . $id_pasien . '/';
             if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0777, true); // Buat folder jika belum ada
+                mkdir($upload_dir, 0777, true);
             }
 
             $uploaded_files = $_FILES['dokumen'];
@@ -82,17 +182,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
                     continue;
                 }
 
-                if ($uploaded_files['size'][$i] > 5242880) { // Maksimal 5MB
+                if ($uploaded_files['size'][$i] > 5242880) {
                     $_SESSION['error'] = "File $file_name melebihi ukuran maksimum 5MB.";
                     continue;
                 }
 
-                // Pindahkan file ke folder tujuan
                 $new_file_name = uniqid('doc_') . '.' . $file_ext;
                 $file_path = $upload_dir . $new_file_name;
 
                 if (move_uploaded_file($file_tmp, $file_path)) {
-                    // Insert ke tabel dokumen_medis
                     $sql_dokumen = "INSERT INTO dokumen_medis (ID_Pasien, Nama_File, Jenis_Dokumen, 
                                     Keterangan, Tanggal_Upload, Path_File) 
                                     VALUES (?, ?, ?, ?, NOW(), ?)";
@@ -116,7 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
                 }
             }
 
-            // Tampilkan pesan sukses atau error
             if ($upload_success) {
                 $_SESSION['success'] = "Rekam medis dan file dokumen berhasil ditambahkan.";
             } else {
@@ -125,11 +222,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
         } else {
             $_SESSION['success'] = "Rekam medis berhasil ditambahkan tanpa dokumen.";
         }
+
+        // Update status pendaftaran menjadi "Diperiksa"
+        $sql_update_status = "UPDATE pendaftaran SET Status = 'Diperiksa' WHERE ID_Pasien = ? AND DATE(Waktu_Daftar) = CURDATE()";
+        $stmt_update = $conn->prepare($sql_update_status);
+        $stmt_update->bind_param("i", $id_pasien);
+        $stmt_update->execute();
+
     } else {
         $_SESSION['error'] = "Gagal menambahkan rekam medis: " . $conn->error;
     }
 
-    // Redirect ke dashboard
     header("Location: nurse_dashboard.php");
     exit();
 }
@@ -187,8 +290,6 @@ $pendingExaminations = getPendingExaminations($conn);
 
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
-
-
             <!-- Patient Queue -->
             <div class="bg-white rounded-lg shadow">
                 <div class="p-6">
@@ -199,33 +300,25 @@ $pendingExaminations = getPendingExaminations($conn);
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         No. Antrian
                                     </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Nama Pasien
                                     </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         No. Rekam Medis
                                     </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Dokter
                                     </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Aksi
                                     </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <?php
-                                // Reset pointer after num_rows check
-                                $pendingExaminations->data_seek(0);
-                                while ($row = $pendingExaminations->fetch_assoc()): ?>
+                                <?php while ($row = $pendingExaminations->fetch_assoc()): ?>
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             <?php echo htmlspecialchars($row['No_Antrian']); ?>
@@ -241,11 +334,14 @@ $pendingExaminations = getPendingExaminations($conn);
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <?php if (!$row['rekam_exists']): ?>
-                                                <button type="button"
-                                                    class="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#recordModal<?php echo $row['ID_Pendaftaran']; ?>">
+                                                <button type="button" class="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#recordModal<?php echo $row['ID_Pendaftaran']; ?>">
                                                     Input Pemeriksaan
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button" class="text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md text-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#updateModal<?php echo $row['ID_Pendaftaran']; ?>">
+                                                    Update Pemeriksaan
                                                 </button>
                                             <?php endif; ?>
                                         </td>
@@ -331,44 +427,149 @@ $pendingExaminations = getPendingExaminations($conn);
             </div>
         </div>
     <?php endwhile; ?>
+    <!-- Update Modal -->
+    <?php $pendingExaminations->data_seek(0);
+    while ($row = $pendingExaminations->fetch_assoc()): 
+        if ($row['rekam_exists']): ?>
+        <div class="modal fade" id="updateModal<?php echo $row['ID_Pendaftaran']; ?>" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Update Pemeriksaan</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <input type="hidden" name="id_rekam" value="<?php echo $row['rekam_exists']; ?>">
+                            <input type="hidden" name="id_pasien" value="<?php echo $row['ID_Pasien']; ?>">
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function addDocumentField() {
-            const container = document.getElementById('documentFields');
-            const newEntry = document.createElement('div');
-            newEntry.className = 'document-entry mb-3';
-            newEntry.innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <input type="file" class="form-control" name="dokumen[]" accept=".pdf,.jpg,.jpeg,.png">
-            </div>
-            <div class="col-md-3">
-                <select class="form-select" name="jenis_dokumen[]" required>
-                    <option value="">Pilih Jenis</option>
-                    <option value="Hasil Lab">Hasil Lab</option>
-                    <option value="Resep">Resep</option>
-                    <option value="Rujukan">Rujukan</option>
-                    <option value="Lainnya">Lainnya</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <div class="input-group">
-                    <input type="text" class="form-control" name="keterangan_dokumen[]" 
-                           placeholder="Keterangan">
-                    <button type="button" class="btn btn-danger" onclick="removeDocumentField(this)">
-                        <i class="fas fa-times"></i>
-                    </button>
+                            <div class="mb-3">
+                                <label class="form-label">Tekanan Darah</label>
+                                <input type="text" class="form-control" name="tekanan_darah" required
+                                       value="<?php echo htmlspecialchars($row['Tekanan_Darah']); ?>"
+                                       placeholder="Contoh: 120/80">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Tinggi Badan (cm)</label>
+                                <input type="number" step="0.1" class="form-control" name="tinggi_badan" required
+                                       value="<?php echo htmlspecialchars($row['Tinggi_Badan']); ?>">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Berat Badan (kg)</label>
+                                <input type="number" step="0.1" class="form-control" name="berat_badan" required
+                                       value="<?php echo htmlspecialchars($row['Berat_Badan']); ?>">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Suhu Badan (°C)</label>
+                                <input type="number" step="0.1" class="form-control" name="suhu" required
+                                       value="<?php echo htmlspecialchars($row['Suhu']); ?>">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Keluhan/Riwayat Penyakit</label>
+                                <textarea class="form-control" name="riwayat_penyakit" rows="3" required><?php echo htmlspecialchars($row['Riwayat_Penyakit']); ?></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Upload Dokumen Tambahan (Opsional)</label>
+                                <input type="file" name="dokumen[]" class="form-control" multiple>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Jenis Dokumen</label>
+                                <select name="jenis_dokumen[]" class="form-select">
+                                    <option value="Hasil Lab">Hasil Lab</option>
+                                    <option value="Resep">Resep</option>
+                                    <option value="Rujukan">Rujukan</option>
+                                    <option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Keterangan</label>
+                                <textarea name="keterangan_dokumen[]" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            <button type="submit" name="update_record" class="btn btn-update">Update</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-    `;
+        <?php endif;
+    endwhile; ?>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to add new document fields dynamically
+        function addDocumentField(containerId) {
+            const container = document.getElementById(containerId);
+            const newEntry = document.createElement('div');
+            newEntry.className = 'document-entry mb-3';
+            newEntry.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <input type="file" class="form-control" name="dokumen[]" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" name="jenis_dokumen[]">
+                            <option value="">Pilih Jenis</option>
+                            <option value="Hasil Lab">Hasil Lab</option>
+                            <option value="Resep">Resep</option>
+                            <option value="Rujukan">Rujukan</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="keterangan_dokumen[]" 
+                                   placeholder="Keterangan">
+                            <button type="button" class="btn btn-danger" onclick="removeDocumentField(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
             container.appendChild(newEntry);
         }
 
+        // Function to remove document field
         function removeDocumentField(button) {
             button.closest('.document-entry').remove();
         }
+
+        // Display success/error messages with timeout
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (isset($_SESSION['success'])): ?>
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                successAlert.innerHTML = `
+                    <?php echo $_SESSION['success']; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.body.appendChild(successAlert);
+                setTimeout(() => successAlert.remove(), 5000);
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['error'])): ?>
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 end-0 m-3';
+                errorAlert.innerHTML = `
+                    <?php echo $_SESSION['error']; ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.body.appendChild(errorAlert);
+                setTimeout(() => errorAlert.remove(), 5000);
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
+        });
     </script>
 </body>
 
