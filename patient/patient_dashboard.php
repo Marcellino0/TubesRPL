@@ -140,7 +140,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                     </a>
                     <a href="medical_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-file-medical"></i>
-                        <span>Riwayat Medis</span>
+                        <span>Hasil Pemeriksaan</span>
                     </a>
                     <a href="payment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-receipt"></i>
@@ -349,7 +349,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                     <div class="flex justify-between items-start mb-2">
                                         <div>
                                             <h3 class="font-semibold text-lg">
-                                                Dr. <?php echo htmlspecialchars($registration['nama_dokter']); ?>
+                                               <?php echo htmlspecialchars($registration['nama_dokter']); ?>
                                                 <span class="text-sm text-gray-600">
                                                     (<?php echo htmlspecialchars($registration['Spesialis']); ?>)
                                                 </span>
