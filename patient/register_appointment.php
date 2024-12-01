@@ -24,6 +24,7 @@ while ($row = $specResult->fetch_assoc()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctorId = $_POST['doctor'] ?? '';
     $scheduleId = $_POST['schedule'] ?? '';
+    $registrationDate = date('Y-m-d');
     
     // Validate inputs
     if (empty($doctorId) || empty($scheduleId)) {
@@ -34,9 +35,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->begin_transaction();
         
         try {
-            // Use today's date for registration
-            $registrationDate = date('Y-m-d');
+            // Get schedule details
+            $scheduleQuery = $conn->prepare("
+                SELECT Hari, ID_Dokter 
+                FROM Jadwal_Dokter 
+                WHERE ID_Jadwal = ?
+            ");
+            $scheduleQuery->bind_param("i", $scheduleId);
+            $scheduleQuery->execute();
+            $scheduleDetails = $scheduleQuery->get_result()->fetch_assoc();
+
+            // Check for existing registration on the same day with the same doctor
+            $existingRegQuery = $conn->prepare("
+                SELECT p.ID_Pendaftaran, d.Nama AS Nama_Dokter
+                FROM Pendaftaran p
+                JOIN Jadwal_Dokter jd ON p.ID_Jadwal = jd.ID_Jadwal
+                JOIN dokter d ON jd.ID_Dokter = d.ID_Dokter
+                WHERE p.ID_Pasien = ? 
+                AND jd.ID_Dokter = ?
+                AND jd.Hari = ?
+                AND DATE(p.Waktu_Daftar) = ?
+            ");
+            $existingRegQuery->bind_param("iiss", 
+                $patientId, 
+                $scheduleDetails['ID_Dokter'], 
+                $scheduleDetails['Hari'], 
+                $registrationDate
+            );
+            $existingRegQuery->execute();
+            $existingReg = $existingRegQuery->get_result();
             
+            // If patient already has a registration for this doctor on this day, prevent new registration
+            if ($existingReg->num_rows > 0) {
+                $existingRegDetails = $existingReg->fetch_assoc();
+                throw new Exception("Anda sudah terdaftar pada hari {$scheduleDetails['Hari']} dengan dokter {$existingRegDetails['Nama_Dokter']}.");
+            }
+
             // Check schedule availability and quota
             $scheduleCheck = $conn->prepare("
                 SELECT 
@@ -116,6 +150,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
+<!-- Rest of the HTML remains the same as in the original script -->
 
 <!DOCTYPE html>
 <html lang="id">
@@ -232,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     const option = document.createElement('option');
                     option.value = schedule.ID_Jadwal;
                     const quotaInfo = schedule.Kuota - schedule.used_quota_today;
-                    option.textContent = `${schedule.Hari} - ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai} (Sisa Kuota: ${quotaInfo})`;
+                    option.textContent = `${schedule.Hari} - ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai}`;
                     option.disabled = quotaInfo <= 0;
                     scheduleSelect.appendChild(option);
                 });

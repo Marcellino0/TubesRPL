@@ -23,7 +23,7 @@ $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $patientData = $stmt->get_result()->fetch_assoc();
 
-// Modify exam results query to include more information
+// Modify exam results query to only include diagnoses and prescriptions
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pemeriksaan,
@@ -32,18 +32,12 @@ $stmt = $conn->prepare("
         d.Nama as nama_dokter,
         d.Spesialis,
         r.Resep_Obat,
-        rm.Tekanan_Darah,
-        rm.Tinggi_Badan,
-        rm.Berat_Badan,
-        rm.Suhu,
         pend.ID_Pendaftaran,
         pend.No_Antrian
     FROM Pemeriksaan p
     JOIN Dokter d ON p.ID_Dokter = d.ID_Dokter
     JOIN Pendaftaran pend ON p.ID_Pendaftaran = pend.ID_Pendaftaran
     LEFT JOIN Resep r ON p.ID_Pemeriksaan = r.ID_Pemeriksaan
-    LEFT JOIN Rekam_Medis rm ON pend.ID_Pasien = rm.ID_Pasien 
-        AND DATE(p.Waktu_Periksa) = rm.Tanggal
     WHERE pend.ID_Pasien = ?
     ORDER BY p.Waktu_Periksa DESC
     LIMIT 5
@@ -76,7 +70,6 @@ $stmt = $conn->prepare("
 $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $activeRegistrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
 
 // Get payment history
 $stmt = $conn->prepare("
@@ -133,14 +126,13 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                         <i class="fas fa-calendar-alt"></i>
                         <span>Jadwal Dokter</span>
                     </a>
-                    <a href="register_appointment.php"
-                        class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <a href="register_appointment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-plus-circle"></i>
                         <span>Buat Janji</span>
                     </a>
                     <a href="medical_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-file-medical"></i>
-                        <span>Riwayat Medis</span>
+                        <span>Hasil Pemeriksaan</span>
                     </a>
                     <a href="payment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-receipt"></i>
@@ -161,180 +153,11 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                     <span>Logout</span>
                 </a>
             </div>
-
-
         </aside>
 
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
-            <!-- Recent Medical Examination Results -->
-            <div class="bg-white rounded-lg shadow mb-8">
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">Hasil Pemeriksaan Terakhir</h2>
-                        <a href="medical_history.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
-                    </div>
-
-                    <!-- Add payment status action buttons -->
-                    <?php foreach ($paymentHistory as $payment): ?>
-                        <tr>
-                            <!-- ... existing payment row columns ... -->
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                <?php echo $payment['Status'] === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                                    <?php echo htmlspecialchars($payment['Status']); ?>
-                                </span>
-                                <?php if ($payment['Status'] === 'Pending'): ?>
-                                    <a href="payment.php?id=<?php echo $payment['ID_Pembayaran']; ?>"
-                                        class="ml-2 text-blue-600 hover:text-blue-800 text-sm">
-                                        Bayar Sekarang
-                                    </a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if (empty($examResults)): ?>
-                        <p class="text-gray-500">Belum ada riwayat pemeriksaan</p>
-                    <?php else: ?>
-                        <div class="space-y-6">
-                            <?php foreach ($examResults as $exam): ?>
-                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h3 class="font-semibold text-lg">
-                                                <?php echo htmlspecialchars($exam['nama_dokter']); ?>
-                                                <span class="text-sm text-gray-600">
-                                                    (<?php echo htmlspecialchars($exam['Spesialis']); ?>)
-                                                </span>
-                                            </h3>
-                                            <p class="text-sm text-gray-600">
-                                                <?php echo date('d F Y, H:i', strtotime($exam['Waktu_Periksa'])); ?>
-                                            </p>
-                                        </div>
-                                        <!-- <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                                            Pemeriksaan #<?php echo $exam['ID_Pemeriksaan']; ?>
-                                        </span> -->
-                                    </div>
-
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                        <div>
-                                            <h4 class="font-medium text-gray-700 mb-2">Data Vital:</h4>
-                                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                                <?php if ($exam['Tekanan_Darah']): ?>
-                                                    <div class="flex items-center">
-                                                        <i class="fas fa-heartbeat text-red-500 mr-2"></i>
-                                                        <span>TD: <?php echo htmlspecialchars($exam['Tekanan_Darah']); ?></span>
-                                                    </div>
-                                                <?php endif; ?>
-                                                <?php if ($exam['Suhu']): ?>
-                                                    <div class="flex items-center">
-                                                        <i class="fas fa-thermometer-half text-orange-500 mr-2"></i>
-                                                        <span>Suhu: <?php echo htmlspecialchars($exam['Suhu']); ?>°C</span>
-                                                    </div>
-                                                <?php endif; ?>
-                                                <?php if ($exam['Tinggi_Badan']): ?>
-                                                    <div class="flex items-center">
-                                                        <i class="fas fa-ruler-vertical text-blue-500 mr-2"></i>
-                                                        <span>TB: <?php echo htmlspecialchars($exam['Tinggi_Badan']); ?> cm</span>
-                                                    </div>
-                                                <?php endif; ?>
-                                                <?php if ($exam['Berat_Badan']): ?>
-                                                    <div class="flex items-center">
-                                                        <i class="fas fa-weight text-green-500 mr-2"></i>
-                                                        <span>BB: <?php echo htmlspecialchars($exam['Berat_Badan']); ?> kg</span>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <h4 class="font-medium text-gray-700 mb-2">Diagnosa:</h4>
-                                            <p class="text-sm text-gray-600">
-                                                <?php echo nl2br(htmlspecialchars($exam['Diagnosa'])); ?>
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <?php if ($exam['Resep_Obat']): ?>
-                                        <div class="mt-4 border-t pt-4">
-                                            <h4 class="font-medium text-gray-700 mb-2">Resep Obat:</h4>
-                                            <p class="text-sm text-gray-600">
-                                                <?php echo nl2br(htmlspecialchars($exam['Resep_Obat'])); ?>
-                                            </p>
-                                        </div>
-                                    <?php endif; ?>
-
-
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-            </div>
-
-            <!-- Payment History -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">Riwayat Pembayaran</h2>
-                        <a href="payment.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
-                    </div>
-                    <?php if (empty($paymentHistory)): ?>
-                        <p class="text-gray-500">Belum ada riwayat pembayaran</p>
-                    <?php else: ?>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead>
-                                    <tr>
-                                        <th
-                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tanggal
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Dokter
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Jumlah
-                                        </th>
-                                        <th
-                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    <?php foreach ($paymentHistory as $payment): ?>
-                                        <tr>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <?php echo date('d/m/Y', strtotime($payment['Tanggal'])); ?>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <?php echo htmlspecialchars($payment['nama_dokter']); ?>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span
-                                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    <?php echo $payment['Status'] === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                                                    <?php echo htmlspecialchars($payment['Status']); ?>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow mt-8">
+        <div class="bg-white rounded-lg shadow mt-8">
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">Pendaftaran Aktif</h2>
@@ -349,7 +172,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                     <div class="flex justify-between items-start mb-2">
                                         <div>
                                             <h3 class="font-semibold text-lg">
-                                                Dr. <?php echo htmlspecialchars($registration['nama_dokter']); ?>
+                                               <?php echo htmlspecialchars($registration['nama_dokter']); ?>
                                                 <span class="text-sm text-gray-600">
                                                     (<?php echo htmlspecialchars($registration['Spesialis']); ?>)
                                                 </span>
@@ -392,6 +215,121 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                     <?php endif; ?>
                 </div>
             </div>
+
+            <br>
+            <!-- Recent Medical Examination Results -->
+            <div class="bg-white rounded-lg shadow mb-8">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Hasil Pemeriksaan Terakhir</h2>
+                        <a href="medical_history.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
+                    </div>
+
+                    <?php if (empty($examResults)): ?>
+                        <p class="text-gray-500">Belum ada riwayat pemeriksaan</p>
+                    <?php else: ?>
+                        <div class="space-y-6">
+                            <?php foreach ($examResults as $exam): ?>
+                                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="font-semibold text-lg">
+                                                <?php echo htmlspecialchars($exam['nama_dokter']); ?>
+                                                <span class="text-sm text-gray-600">
+                                                    (<?php echo htmlspecialchars($exam['Spesialis']); ?>)
+                                                </span>
+                                            </h3>
+                                            <p class="text-sm text-gray-600">
+                                                <?php echo date('d F Y, H:i', strtotime($exam['Waktu_Periksa'])); ?>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-4">
+                                        <div>
+                                            <h4 class="font-medium text-gray-700 mb-2">Diagnosa:</h4>
+                                            <p class="text-sm text-gray-600">
+                                                <?php echo nl2br(htmlspecialchars($exam['Diagnosa'])); ?>
+                                            </p>
+                                        </div>
+
+                                        <?php if ($exam['Resep_Obat']): ?>
+                                            <div class="border-t pt-4">
+                                                <h4 class="font-medium text-gray-700 mb-2">Resep Obat:</h4>
+                                                <p class="text-sm text-gray-600">
+                                                    <?php echo nl2br(htmlspecialchars($exam['Resep_Obat'])); ?>
+                                                </p>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Riwayat Pembayaran</h2>
+                        <a href="payment.php" class="text-blue-600 hover:text-blue-800">Lihat Semua →</a>
+                    </div>
+                    <?php if (empty($paymentHistory)): ?>
+                        <p class="text-gray-500">Belum ada riwayat pembayaran</p>
+                    <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Tanggal
+                                        </th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Dokter
+                                        </th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Jumlah
+                                        </th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <?php foreach ($paymentHistory as $payment): ?>
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <?php echo date('d/m/Y', strtotime($payment['Tanggal'])); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <?php echo htmlspecialchars($payment['nama_dokter']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                    <?php echo $payment['Status'] === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                                    <?php echo htmlspecialchars($payment['Status']); ?>
+                                                </span>
+                                                <?php if ($payment['Status'] === 'Pending'): ?>
+                                                    <a href="payment.php?id=<?php echo $payment['ID_Pembayaran']; ?>" 
+                                                       class="ml-2 text-blue-600 hover:text-blue-800 text-sm">
+                                                        Bayar Sekarang
+                                                    </a>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
         </main>
     </div>
 </body>
