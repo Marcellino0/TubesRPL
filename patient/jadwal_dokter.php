@@ -18,7 +18,7 @@ $query = "SELECT
     jd.Hari,
     jd.Jam_Mulai,
     jd.Jam_Selesai,
-    jd.Kuota,
+    jd.Kuota_Online,
     jd.Status
 FROM dokter d
 LEFT JOIN jadwal_dokter jd ON d.ID_Dokter = jd.ID_Dokter
@@ -65,7 +65,7 @@ while ($row = $result->fetch_assoc()) {
             'hari' => $row['Hari'],
             'jam_mulai' => $row['Jam_Mulai'],
             'jam_selesai' => $row['Jam_Selesai'],
-            'kuota' => $row['Kuota']
+            'kuota_online' => $row['Kuota_Online']
         ];
     }
 }
@@ -145,11 +145,11 @@ while ($row = $result->fetch_assoc()) {
                                             <p class="text-sm text-gray-600">
                                                 <?php 
                                                 echo htmlspecialchars(sprintf(
-                                                    "%s (%s - %s) - %s",
+                                                    "%s (%s - %s) - Kuota Online: %d pasien",
                                                     $jadwal['hari'],
                                                     date('H:i', strtotime($jadwal['jam_mulai'])),
                                                     date('H:i', strtotime($jadwal['jam_selesai'])),
-                                                    sprintf('Kuota: %d pasien', $jadwal['kuota'])
+                                                    $jadwal['kuota_online']
                                                 ));
                                                 ?>
                                             </p>
