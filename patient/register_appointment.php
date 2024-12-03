@@ -19,11 +19,14 @@ $specializations = [];
 while ($row = $specResult->fetch_assoc()) {
     $specializations[] = $row;
 }
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctorId = $_POST['doctor'] ?? '';
     $scheduleId = $_POST['schedule'] ?? '';
-    $registrationDate = date('Y-m-d');
+    $registrationDate = $_POST['registration_date'];
+
+
     
     // Validate inputs
     if (empty($doctorId) || empty($scheduleId)) {
@@ -73,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Check schedule availability and quota
             $scheduleCheck = $conn->prepare("
                 SELECT 
-                    jd.Kuota, 
+                    jd.Kuota_Online, 
                     jd.Max_Pasien,
                     jd.Hari,
                     COALESCE((
@@ -92,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $scheduleInfo = $scheduleCheck->get_result()->fetch_assoc();
             
             // Check quota availability
-            if ($scheduleInfo['used_quota'] >= $scheduleInfo['Kuota']) {
+            if ($scheduleInfo['used_quota'] >= $scheduleInfo['Kuota_Online']) {
                 throw new Exception("Kuota pendaftaran untuk jadwal ini sudah penuh!");
             }
             
@@ -124,12 +127,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Gagal melakukan pendaftaran: " . $conn->error);
             }
 
-            // Update the quota in Jadwal_Dokter
+            // Update the quota in Jadwal_Dokter (if needed)
             $updateQuotaQuery = $conn->prepare("
                 UPDATE Jadwal_Dokter 
-                SET Kuota = Kuota - 1 
+                SET Kuota_Online = Kuota_Online - 1 
                 WHERE ID_Jadwal = ? 
-                AND Kuota > 0
+                AND Kuota_Online > 0
             ");
             $updateQuotaQuery->bind_param("i", $scheduleId);
             
@@ -148,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
 ?>
 
 <!DOCTYPE html>
