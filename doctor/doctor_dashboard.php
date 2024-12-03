@@ -27,7 +27,8 @@ $stmt->bind_param("is", $dokter_id, $today);
 $stmt->execute();
 $waiting_result = $stmt->get_result()->fetch_assoc();
 
-$stmt = $conn->prepare("SELECT Kuota, 
+// Modified query to use Kuota_Online instead of Kuota
+$stmt = $conn->prepare("SELECT Kuota_Online, 
                        (SELECT COUNT(*) FROM Pendaftaran p 
                         WHERE p.ID_Jadwal = j.ID_Jadwal 
                         AND DATE(p.Waktu_Daftar) = ?) as used_quota 
@@ -93,23 +94,24 @@ $quota_result = $stmt->get_result()->fetch_assoc();
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">Antrian Pasien Hari Ini</h2>
                     </div>
+                    
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
+                            <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         No. Antrian
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Nama Pasien
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         No. Rekam Medis
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    
+                                    <th scope="col" class="px-6 py-3 bg-gray-50"></th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
