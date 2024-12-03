@@ -50,17 +50,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                 exit();
             } else {
                 $_SESSION['error'] = "Username atau password salah";
-                header("Location: index.php");
+                header("Location: ../index.php");
                 exit();
             }
         } else {
             $_SESSION['error'] = "Username atau password salah";
-            header("Location: index.php");
+            header("Location: ../index.php");
             exit();
         }
     } catch(Exception $e) {
         $_SESSION['error'] = "Terjadi kesalahan dalam proses login: " . $e->getMessage();
-        header("Location: index.php");
+        header("Location: ../index.php");
         exit();
     }
 

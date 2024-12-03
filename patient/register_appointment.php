@@ -24,7 +24,9 @@ while ($row = $specResult->fetch_assoc()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctorId = $_POST['doctor'] ?? '';
     $scheduleId = $_POST['schedule'] ?? '';
-    $registrationDate = date('Y-m-d');
+    $registrationDate = $_POST['registration_date'];
+
+
     
     // Validate inputs
     if (empty($doctorId) || empty($scheduleId)) {
@@ -74,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Check schedule availability and quota
             $scheduleCheck = $conn->prepare("
                 SELECT 
-                    jd.Kuota, 
+                    jd.Kuota_Online, 
                     jd.Max_Pasien,
                     jd.Hari,
                     COALESCE((
@@ -93,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $scheduleInfo = $scheduleCheck->get_result()->fetch_assoc();
             
             // Check quota availability
-            if ($scheduleInfo['used_quota'] >= $scheduleInfo['Kuota']) {
+            if ($scheduleInfo['used_quota'] >= $scheduleInfo['Kuota_Online']) {
                 throw new Exception("Kuota pendaftaran untuk jadwal ini sudah penuh!");
             }
             
@@ -125,12 +127,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Gagal melakukan pendaftaran: " . $conn->error);
             }
 
-            // Update the quota in Jadwal_Dokter
+            // Update the quota in Jadwal_Dokter (if needed)
             $updateQuotaQuery = $conn->prepare("
                 UPDATE Jadwal_Dokter 
-                SET Kuota = Kuota - 1 
+                SET Kuota_Online = Kuota_Online - 1 
                 WHERE ID_Jadwal = ? 
-                AND Kuota > 0
+                AND Kuota_Online > 0
             ");
             $updateQuotaQuery->bind_param("i", $scheduleId);
             
@@ -149,9 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-?>
 
-<!-- Rest of the HTML remains the same as in the original script -->
+?>
 
 <!DOCTYPE html>
 <html lang="id">
@@ -173,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" class="space-y-6">
+                <form method="POST" class="space-y-6" id="registrationForm">
                     <!-- Specialization Selection -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Pilih Spesialis</label>
@@ -195,6 +196,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </select>
                     </div>
 
+                    <!-- Date Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Pilih Tanggal Pendaftaran</label>
+                        <input 
+                            type="date" 
+                            name="registration_date" 
+                            id="registration_date" 
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
+                            required
+                        >
+                    </div>
+
                     <!-- Schedule Selection -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Pilih Jadwal</label>
@@ -209,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </a>
                         <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             Daftar
-                        </button>
+                        </a>
                     </div>
                 </form>
             </div>
@@ -217,6 +230,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('registration_date').setAttribute('min', today);
+
     document.getElementById('specialization').addEventListener('change', async function() {
         const spesialis = this.value;
         const doctorSelect = document.getElementById('doctor');
@@ -246,30 +263,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     });
 
-    document.getElementById('doctor').addEventListener('change', async function() {
+    document.getElementById('doctor').addEventListener('change', function() {
+        // Reset date and schedule when doctor changes
+        document.getElementById('registration_date').value = '';
+        document.getElementById('schedule').innerHTML = '<option value="">Pilih Jadwal</option>';
+    });
+
+    document.getElementById('registration_date').addEventListener('change', async function() {
         loadSchedules();
     });
 
     async function loadSchedules() {
         const doctorId = document.getElementById('doctor').value;
+        const selectedDate = document.getElementById('registration_date').value;
         const scheduleSelect = document.getElementById('schedule');
         
         // Reset schedule selection
         scheduleSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
         
-        if (doctorId) {
+        if (doctorId && selectedDate) {
             try {
-                const response = await fetch(`get_schedule.php?doctor_id=${encodeURIComponent(doctorId)}`);
+                const response = await fetch(`get_schedule.php?doctor_id=${encodeURIComponent(doctorId)}&date=${encodeURIComponent(selectedDate)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const schedules = await response.json();
+
+                // Day mapping for client-side validation
+                const dayTranslations = {
+                    'Monday': 'Senin',
+                    'Tuesday': 'Selasa',
+                    'Wednesday': 'Rabu',
+                    'Thursday': 'Kamis',
+                    'Friday': 'Jumat',
+                    'Saturday': 'Sabtu',
+                    'Sunday': 'Minggu'
+                };
+
+                // Get the day of the selected date
+                const selectedDay = dayTranslations[new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })];
+
                 schedules.forEach(schedule => {
                     const option = document.createElement('option');
                     option.value = schedule.ID_Jadwal;
                     const quotaInfo = schedule.Kuota - schedule.used_quota_today;
-                    option.textContent = `${schedule.Hari} - ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai}`;
-                    option.disabled = quotaInfo <= 0;
+                    
+                    // Check if schedule day matches selected date
+                    if (schedule.Hari !== selectedDay) {
+                        option.disabled = true;
+                        option.textContent = `${schedule.Hari} - Tidak sesuai dengan tanggal`;
+                    } else {
+                        option.textContent = `${schedule.Hari} - ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai}`;
+                        option.disabled = quotaInfo <= 0;
+                    }
+                    
                     scheduleSelect.appendChild(option);
                 });
             } catch (error) {

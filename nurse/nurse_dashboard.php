@@ -8,14 +8,14 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'perawat') {
     exit();
 }
 
-// Function to get pending examinations
+// Function to get pending examinations// Function to get pending examinations
 function getPendingExaminations($conn)
 {
     $sql = "SELECT p.ID_Pendaftaran, ps.ID_Pasien, ps.Nama as nama_pasien, ps.Nomor_Rekam_Medis, 
             d.Nama as nama_dokter, p.No_Antrian, p.Waktu_Daftar, p.Status,
             rm.ID_Rekam as rekam_exists, rm.Tekanan_Darah, rm.Tinggi_Badan, 
             rm.Berat_Badan, rm.Suhu, rm.Riwayat_Penyakit,
-            DATE(p.Waktu_Daftar) as Tanggal_Daftar
+            DATE_FORMAT(p.Waktu_Daftar, '%d/%m/%Y') as Tanggal_Daftar
             FROM pendaftaran p
             JOIN pasien ps ON p.ID_Pasien = ps.ID_Pasien
             JOIN jadwal_dokter j ON p.ID_Jadwal = j.ID_Jadwal
@@ -23,7 +23,8 @@ function getPendingExaminations($conn)
             LEFT JOIN rekam_medis rm ON ps.ID_Pasien = rm.ID_Pasien 
             AND DATE(rm.Tanggal) = DATE(p.Waktu_Daftar)
             WHERE p.Status = 'Menunggu'
-            ORDER BY p.Waktu_Daftar ASC";
+            AND DATE(p.Waktu_Daftar) = CURDATE()
+            ORDER BY p.No_Antrian ASC";
 
     $result = $conn->query($sql);
     return $result;
@@ -494,6 +495,7 @@ $pendingExaminations = getPendingExaminations($conn);
         </div>
     </div>
     <?php endwhile; ?>
+    
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
