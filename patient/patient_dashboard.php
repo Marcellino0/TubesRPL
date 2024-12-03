@@ -32,12 +32,13 @@ $stmt = $conn->prepare("
         d.Nama as nama_dokter,
         d.Spesialis,
         r.Resep_Obat,
-        pend.ID_Pendaftaran,
-        pend.No_Antrian
+        pb.Status as status_pembayaran,
+        pb.Jumlah as biaya_pemeriksaan
     FROM Pemeriksaan p
-    JOIN Dokter d ON p.ID_Dokter = d.ID_Dokter
     JOIN Pendaftaran pend ON p.ID_Pendaftaran = pend.ID_Pendaftaran
+    JOIN Dokter d ON p.ID_Dokter = d.ID_Dokter
     LEFT JOIN Resep r ON p.ID_Pemeriksaan = r.ID_Pemeriksaan
+    LEFT JOIN Pembayaran pb ON pend.ID_Pendaftaran = pb.ID_Pendaftaran
     WHERE pend.ID_Pasien = ?
     ORDER BY p.Waktu_Periksa DESC
     LIMIT 5
