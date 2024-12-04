@@ -7,7 +7,15 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: index.php");
     exit();
 }
-
+// Fetch the logged-in patient's name
+$patientName = "Pasien";
+if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
+    $stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $patientName = $result['Nama'] ?? "Pasien";
+}
 $patientId = $_SESSION['user_id'];
 
 // Get patient basic info
@@ -67,23 +75,50 @@ $examinations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-    <nav class="bg-blue-600 text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between items-center py-4">
-                <div class="flex items-center">
-                    <h1 class="text-xl font-bold">Poliklinik X</h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <a href="patient_dashboard.php" class="hover:text-gray-200">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </a>
-                    <span><?php echo htmlspecialchars($patientInfo['Nama']); ?></span>
-                    <a href="logout.php" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded">Logout</a>
+
+<div class="flex min-h-screen bg-gray-100">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-blue-800 text-white fixed h-full">
+        <div class="p-4">
+            <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
+            <nav class="space-y-2">
+                <a href="patient_dashboard.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="jadwal_dokter.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Jadwal Dokter</span>
+                </a>
+                <a href="register_appointment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Buat Janji</span>
+                </a>
+                <a href="medical_history.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
+                    <i class="fas fa-file-medical"></i>
+                    <span>Hasil Pemeriksaan</span>
+                </a>
+                <a href="payment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <i class="fas fa-receipt"></i>
+                    <span>Pembayaran</span>
+                </a>
+            </nav>
+        </div>
+        <div class="absolute bottom-0 w-64 p-4 bg-blue-900">
+            <div class="flex items-center space-x-3 mb-4">
+                <i class="fas fa-user-circle text-2xl"></i>
+                <div>
+                    <p class="font-medium"><?php echo htmlspecialchars($patientName); ?></p>
+                    <p class="text-sm text-gray-300">Pasien</p>
                 </div>
             </div>
+            <a href="logout.php" class="flex items-center space-x-3 p-2 rounded hover:bg-blue-800 text-red-300">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
         </div>
-    </nav>
+    </aside>
+
 
     <div class="max-w-7xl mx-auto px-4 py-8">
         <div class="mb-8">
