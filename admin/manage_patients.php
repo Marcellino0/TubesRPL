@@ -25,6 +25,50 @@ if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
 
 $conn = connectDB();
 
+// Handle Delete Action
+if(isset($_POST['delete_patient'])) {
+    try {
+        $nik = $_POST['nik'];
+        $stmt = $conn->prepare("DELETE FROM Pasien WHERE NIK = ?");
+        $stmt->execute([$nik]);
+        $_SESSION['success_message'] = "Pasien berhasil dihapus";
+        header("Location: manage_patients.php");
+        exit();
+    } catch(PDOException $e) {
+        $_SESSION['error_message'] = "Gagal menghapus pasien: " . $e->getMessage();
+    }
+}
+
+// Fetch patient data for editing
+$edit_data = null;
+if(isset($_GET['edit']) && !empty($_GET['edit'])) {
+    try {
+        $stmt = $conn->prepare("SELECT * FROM Pasien WHERE NIK = ?");
+        $stmt->execute([$_GET['edit']]);
+        $edit_data = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch(PDOException $e) {
+        $_SESSION['error_message'] = "Error fetching patient data: " . $e->getMessage();
+    }
+}
+// Handle Edit Action
+if(isset($_POST['edit_patient'])) {
+    try {
+        $stmt = $conn->prepare("UPDATE Pasien SET Nama = ?, Tanggal_Lahir = ?, Jenis_Kelamin = ? WHERE NIK = ?");
+        $stmt->execute([
+            $_POST['nama'],
+            $_POST['tanggal_lahir'],
+            $_POST['jenis_kelamin'],
+            $_POST['nik']
+        ]);
+        $_SESSION['success_message'] = "Data pasien berhasil diperbarui";
+        header("Location: manage_patients.php");
+        exit();
+    } catch(PDOException $e) {
+        $_SESSION['error_message'] = "Gagal memperbarui data pasien: " . $e->getMessage();
+    }
+}
+
+
 // Fetch specializations
 try {
     $spec_query = $conn->query("SELECT DISTINCT Spesialis FROM dokter");
@@ -100,70 +144,122 @@ if (isset($_SESSION['error_message'])) {
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
             <!-- Header -->
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">Kelola Pasien</h1>
-                <button onclick="openModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                    <i class="fas fa-plus"></i>
-                    <span>Tambah Pasien</span>
-                </button>
-            </div>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">Kelola Pasien</h1>
+            <button onclick="openModal('add')" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                <i class="fas fa-plus"></i>
+                <span>Tambah Pasien</span>
+            </button>
+        </div>
 
             <!-- Patient List -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                        <thead>
-    <tr>
-        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIK</th>
-        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Rekam Medis</th>
-        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Lahir</th>
-        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Kelamin</th>
-        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
-    </tr>
-</thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php
-                                try {
-                                    $stmt = $conn->query("SELECT * FROM Pasien ORDER BY Nama");
-                                    while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                        echo "<tr>";
-        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['NIK']) . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . htmlspecialchars($row['Nama']) . "</td>";
-        // Add the new column for medical record number
-        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
-        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
-                                        
-                                        echo "<td class='px-6 py-4 whitespace-nowrap'>
-                                                <span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800'>
-                                                    Aktif
-                                                </span>
-                                              </td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                                                <button onclick='editPatient(\"" . $row['NIK'] . "\")' class='text-blue-600 hover:text-blue-900 mr-3'>
-                                                    <i class='fas fa-edit'></i>
-                                                </button>
-                                                <button onclick='deletePatient(\"" . $row['NIK'] . "\")' class='text-red-600 hover:text-red-900'>
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                                <tr>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NIK</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No. Rekam Medis</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal Lahir</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Kelamin</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php
+                            try {
+                                $stmt = $conn->query("SELECT * FROM Pasien ORDER BY Nama");
+                                while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                    echo "<tr>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['NIK']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . htmlspecialchars($row['Nama']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap'>
+                                            <span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800'>
+                                                Aktif
+                                            </span>
+                                          </td>";
+                                    echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                                            <button onclick='openModal(\"edit\", " . json_encode($row) . ")' class='text-blue-600 hover:text-blue-900 mr-3'>
+                                                <i class='fas fa-edit'></i>
+                                            </button>
+                                            <form method='POST' action='' class='inline' onsubmit='return confirmDelete()'>
+                                                <input type='hidden' name='nik' value='" . htmlspecialchars($row['NIK']) . "'>
+                                                <button type='submit' name='delete_patient' class='text-red-600 hover:text-red-900'>
                                                     <i class='fas fa-trash'></i>
                                                 </button>
-                                              </td>";
-                                        echo "</tr>";
-                                    }
-                                } catch(PDOException $e) {
-                                    echo "<tr><td colspan='6' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
+                                            </form>
+                                          </td>";
+                                    echo "</tr>";
                                 }
-                                ?>
-                            </tbody>
-                        </table>
-                    </div>
+                            } catch(PDOException $e) {
+                                echo "<tr><td colspan='7' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
+    </div>
+    <!-- Edit Patient Modal -->
+    <div id="editModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" onclick="closeModal('edit')">
+                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Data Pasien</h3>
+
+                    <form id="editForm" method="POST" action="" class="space-y-4">
+                        <input type="hidden" name="edit_patient" value="1">
+                        <input type="hidden" name="nik" id="edit_nik">
+                        
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Nama Lengkap</label>
+                            <input type="text" name="nama" id="edit_nama" required
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Lahir</label>
+                            <input type="date" name="tanggal_lahir" id="edit_tanggal_lahir" required
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Jenis Kelamin</label>
+                            <select name="jenis_kelamin" id="edit_jenis_kelamin" required
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
+                            </select>
+                        </div>
+
+                        <div class="mt-6 flex justify-end space-x-3">
+                            <button type="button" onclick="closeModal('edit')"
+                                class="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100">
+                                Batal
+                            </button>
+                            <button type="submit"
+                                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                                Simpan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Patient Modal -->
     <div id="patientModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -265,13 +361,32 @@ if (isset($_SESSION['error_message'])) {
 
     
     <script>
-    function openModal() {
-        document.getElementById('patientModal').classList.remove('hidden');
+    function openModal(type, data = null) {
+        if (type === 'edit') {
+            document.getElementById('editModal').classList.remove('hidden');
+            // Populate edit form
+            document.getElementById('edit_nik').value = data.NIK;
+            document.getElementById('edit_nama').value = data.Nama;
+            document.getElementById('edit_tanggal_lahir').value = data.Tanggal_Lahir;
+            document.getElementById('edit_jenis_kelamin').value = data.Jenis_Kelamin;
+        } else {
+            document.getElementById('patientModal').classList.remove('hidden');
+        }
     }
 
-    function closeModal() {
-        document.getElementById('patientModal').classList.add('hidden');
+
+    function closeModal(type) {
+        if (type === 'edit') {
+            document.getElementById('editModal').classList.add('hidden');
+        } else {
+            document.getElementById('patientModal').classList.add('hidden');
+        }
     }
+
+    function confirmDelete() {
+        return confirm('Apakah Anda yakin ingin menghapus data pasien ini?');
+    }
+
 
     function editPatient(nik) {
         // Implement edit functionality
