@@ -179,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="p-4">
                 <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
                 <nav class="space-y-2">
-                    <a href="dashboard.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                    <a href="patient_dashboard.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-home"></i>
                         <span>Dashboard</span>
                     </a>
