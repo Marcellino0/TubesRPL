@@ -26,18 +26,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($dokterId) {
             // Update data dokter
             if (!empty($password)) {
-                $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+                // Simpan password tanpa hashing
                 $stmt = $conn->prepare("UPDATE Dokter SET Nama = ?, Spesialis = ?, Username = ?, Password = ? WHERE ID_Dokter = ?");
-                $stmt->bind_param("ssssi", $nama, $spesialis, $username, $hashedPassword, $dokterId);
+                $stmt->bind_param("ssssi", $nama, $spesialis, $username, $password, $dokterId);
             } else {
                 $stmt = $conn->prepare("UPDATE Dokter SET Nama = ?, Spesialis = ?, Username = ? WHERE ID_Dokter = ?");
                 $stmt->bind_param("sssi", $nama, $spesialis, $username, $dokterId);
             }
         } else {
             // Tambah dokter baru
-            $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
             $stmt = $conn->prepare("INSERT INTO Dokter (Nama, Spesialis, Username, Password) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $nama, $spesialis, $username, $hashedPassword);
+            $stmt->bind_param("ssss", $nama, $spesialis, $username, $password);
         }
 
         if ($stmt->execute()) {
@@ -181,6 +180,7 @@ $dokterQuery = $conn->query("
                             <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
                             <input type="password" id="password" name="password" 
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                            <p class="mt-1 text-sm text-gray-500">Kosongkan jika tidak ingin mengubah password</p>
                         </div>
                         
                         <div class="col-span-full">
@@ -239,6 +239,7 @@ $dokterQuery = $conn->query("
             document.getElementById('nama').value = dokter.Nama;
             document.getElementById('spesialis').value = dokter.Spesialis;
             document.getElementById('username').value = dokter.Username;
+            document.getElementById('password').value = '';
         }
 
         function confirmDelete(dokterId) {
