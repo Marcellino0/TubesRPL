@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 04, 2024 at 09:16 AM
+-- Generation Time: Dec 04, 2024 at 10:00 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -145,7 +145,7 @@ INSERT INTO `jadwal_dokter` (`ID_Jadwal`, `ID_Dokter`, `Jam_Mulai`, `Jam_Selesai
 (2, 1, '08:00:00', '12:00:00', 18, 20, 20, 'Rabu', 'Aktif', ''),
 (3, 1, '13:00:00', '17:00:00', 19, 20, 20, 'Jumat', 'Aktif', ''),
 (4, 2, '08:00:00', '14:00:00', 13, 15, 15, 'Selasa', 'Aktif', ''),
-(5, 2, '08:00:00', '14:00:00', 13, 15, 15, 'Kamis', 'Aktif', ''),
+(5, 2, '08:00:00', '14:00:00', 12, 15, 15, 'Kamis', 'Aktif', ''),
 (6, 3, '13:00:00', '17:00:00', 21, 25, 25, 'Selasa', 'Aktif', ''),
 (7, 3, '13:00:00', '17:00:00', 24, 17, 50, 'Jumat', 'Aktif', ''),
 (8, 4, '08:00:00', '12:00:00', 20, 20, 20, 'Senin', 'Aktif', ''),
@@ -323,7 +323,8 @@ INSERT INTO `pendaftaran` (`ID_Pendaftaran`, `ID_Pasien`, `ID_Jadwal`, `Waktu_Da
 (122, 28, 1, '2024-12-09 07:02:08', 6, 'Menunggu', 'REG20241204006'),
 (123, 29, 1, '2024-12-09 07:17:12', 7, 'Menunggu', 'REG20241204007'),
 (124, 1, 6, '2024-12-24 00:00:00', 1, 'Menunggu', NULL),
-(125, 30, 1, '2024-12-30 07:24:36', 1, 'Menunggu', 'REG20241204001');
+(125, 30, 1, '2024-12-30 07:24:36', 1, 'Menunggu', 'REG20241204001'),
+(126, 1, 5, '2024-12-05 00:00:00', 1, 'Menunggu', NULL);
 
 -- --------------------------------------------------------
 
@@ -399,24 +400,6 @@ INSERT INTO `resep` (`ID_Resep`, `ID_Pemeriksaan`, `Resep_Obat`, `Tanggal`) VALU
 (56, 62, 'dasdasads', '2024-12-04'),
 (57, 63, 'sadaddaaaaaaaaaaaaaaaaaaaaaaaaa', '2024-12-06'),
 (58, 64, 'ABC\r\n', '2024-12-13');
-
--- --------------------------------------------------------
-
---
--- Stand-in structure for view `v_jadwal_dokter`
--- (See below for the actual view)
---
-CREATE TABLE `v_jadwal_dokter` (
-);
-
--- --------------------------------------------------------
-
---
--- Structure for view `v_jadwal_dokter`
---
-DROP TABLE IF EXISTS `v_jadwal_dokter`;
-
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_jadwal_dokter`  AS SELECT `jd`.`ID_Jadwal` AS `ID_Jadwal`, `d`.`ID_Dokter` AS `ID_Dokter`, `d`.`Nama` AS `nama_dokter`, `d`.`Spesialis` AS `Spesialis`, `jd`.`Hari` AS `Hari`, `jd`.`Jam_Mulai` AS `Jam_Mulai`, `jd`.`Jam_Selesai` AS `Jam_Selesai`, `jd`.`Kuota` AS `Kuota`, `jd`.`Max_Pasien` AS `Max_Pasien`, `jd`.`Status` AS `Status`, `jd`.`Keterangan` AS `Keterangan`, (select count(0) from `pendaftaran` `p` where `p`.`ID_Jadwal` = `jd`.`ID_Jadwal` and cast(`p`.`Waktu_Daftar` as date) = curdate()) AS `jumlah_pasien_hari_ini` FROM (`jadwal_dokter` `jd` join `dokter` `d` on(`jd`.`ID_Dokter` = `d`.`ID_Dokter`)) ;
 
 --
 -- Indexes for dumped tables
@@ -582,7 +565,7 @@ ALTER TABLE `pemeriksaan`
 -- AUTO_INCREMENT for table `pendaftaran`
 --
 ALTER TABLE `pendaftaran`
-  MODIFY `ID_Pendaftaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=126;
+  MODIFY `ID_Pendaftaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=127;
 
 --
 -- AUTO_INCREMENT for table `perawat`

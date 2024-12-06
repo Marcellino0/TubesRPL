@@ -184,27 +184,7 @@ $registrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                 <?php endif; ?>
                             </div>
 
-                            <?php if ($reg['Bukti_Reservasi']): ?>
-                                <div class="mt-4 pt-4 border-t">
-                                    <h3 class="font-medium mb-2">Bukti Reservasi:</h3>
-                                    <div class="flex items-center space-x-4">
-                                        <?php
-                                        $filePath = "../uploads/bukti_reservasi/" . htmlspecialchars($reg['Bukti_Reservasi']);
-                                        $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                                        ?>
-                                        <?php if (in_array($fileExtension, ['jpg', 'jpeg', 'png'])): ?>
-                                            <img src="<?php echo $filePath; ?>" alt="Bukti Reservasi"
-                                                class="h-24 w-auto rounded object-cover">
-                                        <?php else: ?>
-                                            <i class="fas fa-file-pdf text-4xl text-red-500"></i>
-                                        <?php endif; ?>
-                                        <a href="<?php echo $filePath; ?>" target="_blank"
-                                            class="text-blue-600 hover:text-blue-800 underline">
-                                            Lihat Bukti Reservasi
-                                        </a>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
+                            
 
                             <?php if ($reg['ID_Pemeriksaan']): ?>
                                 <div class="mt-4 pt-4 border-t">

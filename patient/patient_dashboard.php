@@ -189,27 +189,7 @@ $stats = $conn->query($query_stats)->fetch_assoc();
                                         </span>
                                     </div>
 
-                                    <?php if ($registration['Bukti_Reservasi']): ?>
-                                        <div class="mt-4 border-t pt-4">
-                                            <h4 class="font-medium text-gray-700 mb-2">Bukti Reservasi:</h4>
-                                            <div class="flex items-center space-x-4">
-                                                <?php
-                                                $filePath = "../uploads/bukti_reservasi/" . htmlspecialchars($registration['Bukti_Reservasi']);
-                                                $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                                                ?>
-                                                <?php if (in_array($fileExtension, ['jpg', 'jpeg', 'png'])): ?>
-                                                    <img src="<?php echo $filePath; ?>" alt="Bukti Reservasi"
-                                                        class="h-24 w-auto rounded-lg object-cover">
-                                                <?php elseif ($fileExtension === 'pdf'): ?>
-                                                    <i class="fas fa-file-pdf text-4xl text-red-500"></i>
-                                                <?php endif; ?>
-                                                <a href="<?php echo $filePath; ?>" target="_blank"
-                                                    class="text-blue-600 hover:text-blue-800 underline">
-                                                    Lihat Bukti Reservasi
-                                                </a>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
+                                   
                                 </div>
                             <?php endforeach; ?>
                         </div>
