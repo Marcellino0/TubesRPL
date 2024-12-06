@@ -166,6 +166,10 @@ $doctors = getDoctors($conn);
                         <i class="fas fa-users"></i>
                         <span>Kelola Pasien</span>
                     </a>
+                    <a href="pendaftaran_offline.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-notes-medical"></i>
+                        <span>Pendaftaran Pemeriksaan</span>
+                    </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
@@ -422,16 +426,16 @@ $doctors = getDoctors($conn);
             form.querySelector('#id_jadwal').value = '';
         });
 
-        document.getElementById('scheduleForm').addEventListener('submit', function(e) {
-    const kuotaOnline = parseInt(document.getElementById('kuota_online').value);
-    const kuotaOffline = parseInt(document.getElementById('kuota_offline').value);
-    const maxPasien = parseInt(document.getElementById('max_pasien').value);
-    
-    if ((kuotaOnline + kuotaOffline) > maxPasien) {
-        e.preventDefault();
-        alert('Total kuota (online + offline) tidak boleh melebihi maksimal pasien!');
-    }
-});
+        document.getElementById('scheduleForm').addEventListener('submit', function (e) {
+            const kuotaOnline = parseInt(document.getElementById('kuota_online').value);
+            const kuotaOffline = parseInt(document.getElementById('kuota_offline').value);
+            const maxPasien = parseInt(document.getElementById('max_pasien').value);
+
+            if ((kuotaOnline + kuotaOffline) > maxPasien) {
+                e.preventDefault();
+                alert('Total kuota (online + offline) tidak boleh melebihi maksimal pasien!');
+            }
+        });
     </script>
 </body>
 
