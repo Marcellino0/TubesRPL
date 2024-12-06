@@ -5,7 +5,7 @@ session_start();
 function connectDB()
 {
     $host = 'localhost';
-    $dbname = 'poliklinikx'; // sesuaikan dengan nama database Anda
+    $dbname = 'poliklinikx';
     $username = 'root';
     $password = '';
 
@@ -40,17 +40,6 @@ if (isset($_POST['delete_patient'])) {
     }
 }
 
-// Fetch patient data for editing
-$edit_data = null;
-if (isset($_GET['edit']) && !empty($_GET['edit'])) {
-    try {
-        $stmt = $conn->prepare("SELECT * FROM Pasien WHERE NIK = ?");
-        $stmt->execute([$_GET['edit']]);
-        $edit_data = $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        $_SESSION['error_message'] = "Error fetching patient data: " . $e->getMessage();
-    }
-}
 // Handle Edit Action
 if (isset($_POST['edit_patient'])) {
     try {
@@ -69,36 +58,37 @@ if (isset($_POST['edit_patient'])) {
     }
 }
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// Aktifkan error reporting untuk debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 // Handle Add Patient Action
 if (isset($_POST['add_patient'])) {
     try {
-
-        // Validasi input
+        // Validasi input dasar
         if (empty($_POST['nik']) || empty($_POST['nama']) || empty($_POST['tanggal_lahir']) || empty($_POST['jenis_kelamin'])) {
             throw new Exception("Semua field harus diisi");
         }
 
+        // Validasi format NIK
         if (strlen($_POST['nik']) !== 16 || !is_numeric($_POST['nik'])) {
             throw new Exception("NIK harus 16 digit angka");
         }
 
-        // Check if NIK already exists
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ?");
+        // Start transaction
+        $conn->beginTransaction();
+
+        // Check existing NIK dengan lock
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ? FOR UPDATE");
         $stmt->execute([$_POST['nik']]);
         if ($stmt->fetchColumn() > 0) {
-            throw new Exception("NIK sudah terdaftar");
+            $conn->rollBack();
+            throw new Exception("NIK sudah terdaftar dalam sistem");
         }
 
         // Generate nomor rekam medis
         $year = date('Y');
-        $stmt = $conn->query("SELECT MAX(CAST(SUBSTRING_INDEX(Nomor_Rekam_Medis, '-', -1) AS UNSIGNED)) as max_num FROM Pasien WHERE Nomor_Rekam_Medis LIKE 'RMOffline-$year-%'");
+        $stmt = $conn->prepare("SELECT MAX(CAST(SUBSTRING_INDEX(Nomor_Rekam_Medis, '-', -1) AS UNSIGNED)) as max_num 
+                               FROM Pasien 
+                               WHERE Nomor_Rekam_Medis LIKE 'RMOffline-$year-%'
+                               FOR UPDATE");
+        $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $next_num = ($result['max_num'] ?? 0) + 1;
         $nomor_rm = sprintf("RMOffline-%s-%05d", $year, $next_num);
@@ -108,10 +98,12 @@ if (isset($_POST['add_patient'])) {
         $today = new DateTime();
         $age = $today->diff($birthDate)->y;
 
-        // Insert data
-        $stmt = $conn->prepare("INSERT INTO Pasien (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur) VALUES (?, ?, ?, ?, ?, ?)");
+        // Insert new patient
+        $stmt = $conn->prepare("INSERT INTO Pasien 
+            (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur, Registration_Type) 
+            VALUES (?, ?, ?, ?, ?, ?, 'offline')");
 
-        $success = $stmt->execute([
+        $stmt->execute([
             $_POST['nik'],
             $_POST['nama'],
             $_POST['tanggal_lahir'],
@@ -120,33 +112,24 @@ if (isset($_POST['add_patient'])) {
             $age
         ]);
 
-        if ($success) {
-            $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
-            header("Location: manage_patients.php");
-            exit();
-        } else {
-            throw new Exception("Gagal menyimpan data ke database");
-        }
+        // Commit transaction
+        $conn->commit();
+
+        $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
+        header("Location: manage_patients.php");
+        exit();
+
     } catch (PDOException $e) {
-        $_SESSION['error_message'] = "Database Error: " . $e->getMessage();
+        $conn->rollBack();
+        if ($e->getCode() == 23000) { // SQL error code for duplicate entry
+            $_SESSION['error_message'] = "NIK sudah terdaftar dalam sistem";
+        } else {
+            $_SESSION['error_message'] = "Database Error: " . $e->getMessage();
+        }
     } catch (Exception $e) {
+        $conn->rollBack();
         $_SESSION['error_message'] = $e->getMessage();
     }
-}
-
-// Tampilkan pesan error/success
-if (isset($_SESSION['error_message'])) {
-    echo "<div class='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative' role='alert'>";
-    echo $_SESSION['error_message'];
-    echo "</div>";
-    unset($_SESSION['error_message']);
-}
-
-if (isset($_SESSION['success_message'])) {
-    echo "<div class='bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative' role='alert'>";
-    echo $_SESSION['success_message'];
-    echo "</div>";
-    unset($_SESSION['success_message']);
 }
 ?>
 
@@ -192,6 +175,10 @@ if (isset($_SESSION['success_message'])) {
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
                     </a>
+                    <a href="manage_payments.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Kelola Pembayaran</span>
+                    </a>
                 </nav>
             </div>
             <div class="absolute bottom-0 w-64 p-4 bg-blue-900">
@@ -215,11 +202,31 @@ if (isset($_SESSION['success_message'])) {
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold">Kelola Pasien</h1>
                 <button onclick="openModal('add')"
-                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                    <i class="fas fa-plus"></i>
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2 opacity-100 hover:opacity-90 transition-opacity duration-300">
+                    <i class="fas fa-plus mr-2"></i>
                     <span>Tambah Pasien</span>
                 </button>
+
             </div>
+
+            <!-- Success/Error Messages -->
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+                    <?php
+                    echo $_SESSION['success_message'];
+                    unset($_SESSION['success_message']);
+                    ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['error_message'])): ?>
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                    <?php
+                    echo $_SESSION['error_message'];
+                    unset($_SESSION['error_message']);
+                    ?>
+                </div>
+            <?php endif; ?>
 
             <!-- Patient List -->
             <div class="bg-white rounded-lg shadow">
@@ -230,57 +237,73 @@ if (isset($_SESSION['success_message'])) {
                                 <tr>
                                     <th
                                         class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        NIK</th>
+                                        NIK
+                                    </th>
                                     <th
                                         class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Nama</th>
+                                        Nama
+                                    </th>
                                     <th
                                         class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        No. Rekam Medis</th>
+                                        No. Rekam Medis
+                                    </th>
                                     <th
                                         class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tanggal Lahir</th>
+                                        Tanggal Lahir
+                                    </th>
                                     <th
                                         class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Jenis Kelamin</th>
+                                        Jenis Kelamin
+                                    </th>
                                     <th
                                         class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status</th>
+                                        Tipe Registrasi
+                                    </th>
                                     <th
                                         class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Aksi</th>
+                                        Aksi
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php
                                 try {
-                                    $stmt = $conn->query("SELECT * FROM Pasien ORDER BY Nama");
+                                    $stmt = $conn->query("SELECT * FROM Pasien ORDER BY 
+                                                        CASE 
+                                                            WHEN Nomor_Rekam_Medis LIKE 'RM-%' THEN 1 
+                                                            ELSE 2 
+                                                        END,
+                                                        Nomor_Rekam_Medis ASC");
+
                                     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                        $is_online = strpos($row['Nomor_Rekam_Medis'], 'RM-') === 0;
+                                        $registration_type = $is_online ? 'online' : 'offline';
+                                        $badge_class = $is_online ?
+                                            'bg-green-100 text-green-800' :
+                                            'bg-blue-100 text-blue-800';
+
                                         echo "<tr>";
                                         echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['NIK']) . "</td>";
                                         echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . htmlspecialchars($row['Nama']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap'>
-                                            <span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800'>
-                                                Aktif
-                                            </span>
-                                          </td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                                            <button onclick='openModal(\"edit\", " . json_encode($row) . ")' class='text-blue-600 hover:text-blue-900 mr-3'>
+                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-indigo-600'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
+                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
+                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
+                                        echo "<td class='px-6 py-4 whitespace-nowrap'>";
+                                        echo "<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full {$badge_class}'>";
+                                        echo ucfirst($registration_type);
+                                        echo "</span>";
+                                        echo "</td>";
+                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3 flex'>";
+                                        echo "<button onclick='openModal(\"edit\", " . json_encode($row) . ")' class='text-blue-600 hover:text-blue-900'>
                                                 <i class='fas fa-edit'></i>
-                                            </button>
-                                            <button onclick='openOfflineRegistration(\"" . htmlspecialchars($row['NIK']) . "\")' class='text-green-600 hover:text-green-900 mr-3'>
-            <i class='fas fa-plus-circle'></i>
-        </button>
-                                            <form method='POST' action='' class='inline' onsubmit='return confirmDelete()'>
+                                            </button>";
+                                        echo "<form method='POST' action='' class='inline' onsubmit='return confirmDelete()'>
                                                 <input type='hidden' name='nik' value='" . htmlspecialchars($row['NIK']) . "'>
                                                 <button type='submit' name='delete_patient' class='text-red-600 hover:text-red-900'>
                                                     <i class='fas fa-trash'></i>
                                                 </button>
-                                            </form>
-                                          </td>";
+                                            </form>";
+                                        echo "</td>";
                                         echo "</tr>";
                                     }
                                 } catch (PDOException $e) {
@@ -293,8 +316,8 @@ if (isset($_SESSION['success_message'])) {
                 </div>
             </div>
         </main>
-
     </div>
+
     <!-- Edit Patient Modal -->
     <div id="editModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -346,85 +369,8 @@ if (isset($_SESSION['success_message'])) {
             </div>
         </div>
     </div>
-    <!-- Offline Registration Modal -->
-    <div id="offlineRegistrationModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity" onclick="closeModal('offline')">
-                <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
 
-            <div
-                class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Pendaftaran Offline Pasien</h3>
-
-                    <form id="offlineRegistrationForm" class="space-y-4">
-                        <input type="hidden" name="nik" id="offline_nik">
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Nama Lengkap</label>
-                                <input type="text" id="offline_nama" disabled
-                                    class="w-full px-3 py-2 border rounded-md bg-gray-100">
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Lahir</label>
-                                <input type="date" id="offline_tanggal_lahir" disabled
-                                    class="w-full px-3 py-2 border rounded-md bg-gray-100">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Spesialis</label>
-                            <select id="offline_specialization" required
-                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                <option value="">Pilih Spesialis</option>
-                                <?php foreach ($specializations as $spec): ?>
-                                    <option value="<?php echo htmlspecialchars($spec); ?>">
-                                        <?php echo htmlspecialchars($spec); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Dokter</label>
-                                <select name="doctor" id="offline_doctor" required
-                                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                    <option value="">Pilih Spesialis Terlebih Dahulu</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Pendaftaran</label>
-                                <input type="date" name="registration_date" id="offline_registration_date" required
-                                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Jadwal</label>
-                            <select name="schedule" id="offline_schedule" required
-                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                <option value="">Pilih Jadwal</option>
-                            </select>
-                        </div>
-
-                        <div class="mt-6 flex justify-end space-x-3">
-                            <button type="button" onclick="closeModal('offline')"
-                                class="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100">
-                                Batal
-                            </button>
-                            <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-                                Daftar Offline
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Patient Modal -->
+    <!-- Add Patient Modal -->
     <div id="patientModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity" onclick="closeModal('add')">
@@ -441,8 +387,9 @@ if (isset($_SESSION['success_message'])) {
 
                         <div>
                             <label class="block text-gray-700 text-sm font-bold mb-2">NIK</label>
-                            <input type="text" name="nik" required maxlength="16"
-                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
+                            <input type="text" name="nik" required maxlength="16" pattern="[0-9]{16}"
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500"
+                                title="NIK harus 16 digit angka">
                         </div>
 
                         <div>
@@ -482,26 +429,25 @@ if (isset($_SESSION['success_message'])) {
         </div>
     </div>
 
-
     <script>
         function openModal(type, data = null) {
             if (type === 'edit') {
                 document.getElementById('editModal').classList.remove('hidden');
-                // Populate edit form
-                document.getElementById('edit_nik').value = data.NIK;
-                document.getElementById('edit_nama').value = data.Nama;
-                document.getElementById('edit_tanggal_lahir').value = data.Tanggal_Lahir;
-                document.getElementById('edit_jenis_kelamin').value = data.Jenis_Kelamin;
-            } else {
+                if (data) {
+                    document.getElementById('edit_nik').value = data.NIK;
+                    document.getElementById('edit_nama').value = data.Nama;
+                    document.getElementById('edit_tanggal_lahir').value = data.Tanggal_Lahir;
+                    document.getElementById('edit_jenis_kelamin').value = data.Jenis_Kelamin;
+                }
+            } else if (type === 'add') {
                 document.getElementById('patientModal').classList.remove('hidden');
             }
         }
 
-
         function closeModal(type) {
             if (type === 'edit') {
                 document.getElementById('editModal').classList.add('hidden');
-            } else {
+            } else if (type === 'add') {
                 document.getElementById('patientModal').classList.add('hidden');
             }
         }
@@ -510,16 +456,10 @@ if (isset($_SESSION['success_message'])) {
             return confirm('Apakah Anda yakin ingin menghapus data pasien ini?');
         }
 
-
-        function editPatient(nik) {
-            // Implement edit functionality
-            alert('Edit patient with NIK: ' + nik);
-        }
-
-        function deletePatient(nik) {
-            if (confirm('Are you sure you want to delete this patient?')) {
-                // Implement delete functionality
-                alert('Delete patient with NIK: ' + nik);
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            if (event.target.classList.contains('fixed')) {
+                event.target.classList.add('hidden');
             }
         }
     </script>
