@@ -49,6 +49,14 @@ if (isset($_POST['register_offline'])) {
         $row = $result->fetch_assoc();
         $no_antrian = ($row['last_number'] ?? 0) + 1;
 
+        $stmt = $conn->prepare("
+        UPDATE Jadwal_Dokter 
+        SET Kuota_Offline = Kuota_Offline - 1
+        WHERE ID_Jadwal = ?
+    ");
+    $stmt->bind_param("i", $_POST['id_jadwal']);
+    $stmt->execute();
+
         // Generate bukti reservasi
         $bukti_reservasi = 'REG' . date('Ymd') . sprintf('%03d', $no_antrian);
 
@@ -127,6 +135,10 @@ if (isset($_POST['register_offline'])) {
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
+                    </a>
+                    <a href="manage_payments.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Kelola Pembayaran</span>
                     </a>
                 </nav>
             </div>
@@ -228,7 +240,7 @@ if (isset($_POST['register_offline'])) {
 
                     <div class="flex items-center justify-center">
                         <button type="submit"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
                             Daftar
                         </button>
                     </div>
@@ -264,33 +276,32 @@ if (isset($_POST['register_offline'])) {
         });
 
         document.getElementById('dokter').addEventListener('change', function () {
-            const doctorId = this.value;
-            const jadwalSelect = document.getElementById('jadwal');
+    const doctorId = this.value;
+    const jadwalSelect = document.getElementById('jadwal');
 
-            // Reset jadwal
-            jadwalSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
+    // Reset jadwal
+    jadwalSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
 
-            if (!doctorId) return;
+    if (!doctorId) return;
 
-            // Fetch schedules
-            fetch(`get_schedule.php?doctor_id=${doctorId}&registration_day=today`)
-                .then(response => response.json())
-                .then(schedules => {
-                    schedules.forEach(schedule => {
-                        // Hitung sisa kuota
-                        const availableQuota = schedule.Kuota_Offline - schedule.used_quota_today;
+    // Fetch schedules
+    fetch(`get_schedule.php?doctor_id=${doctorId}&registration_day=today`)
+        .then(response => response.json())
+        .then(schedules => {
+            schedules.forEach(schedule => {
+                // Hitung sisa kuota offline
+                const availableQuota = schedule.Kuota_Offline - schedule.used_quota_offline_today;
 
-                        if (availableQuota > 0 && schedule.Hari === getCurrentDay()) {
-                            const option = document.createElement('option');
-                            option.value = schedule.ID_Jadwal;
-                            option.textContent = `${schedule.Jam_Mulai}-${schedule.Jam_Selesai} (Sisa Kuota: ${availableQuota})`;
-                            jadwalSelect.appendChild(option);
-                        }
-                    });
-                })
-                .catch(error => console.error('Error:', error));
-        });
-
+                if (availableQuota > 0 && schedule.Hari === getCurrentDay()) {
+                    const option = document.createElement('option');
+                    option.value = schedule.ID_Jadwal;
+                    option.textContent = `${schedule.Jam_Mulai}-${schedule.Jam_Selesai}`;
+                    jadwalSelect.appendChild(option);
+                }
+            });
+        })
+        .catch(error => console.error('Error:', error));
+});
         function getCurrentDay() {
             const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             const date = new Date();
