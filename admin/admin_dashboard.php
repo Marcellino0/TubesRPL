@@ -153,9 +153,7 @@ $today = date('Y-m-d');
                                         <th
                                             class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Jam Praktek</th>
-                                        <th
-                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Sisa Kuota</th>
+                                       
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -202,9 +200,7 @@ $today = date('Y-m-d');
                                             echo "<tr><td colspan='4' class='px-6 py-4 text-center text-gray-500'>Tidak ada dokter yang praktek hari ini</td></tr>";
                                         } else {
                                             while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                                $total_kuota = $row['Kuota_Offline'] + $row['Kuota_Online'];
-                                                $sisa_kuota = $total_kuota - $row['used_quota'];
-                                                $quota_color = $sisa_kuota <= 2 ? 'text-red-600' : 'text-green-600';
+                                        
                                                 
                                                 echo "<tr>";
                                                 echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . htmlspecialchars($row['Nama']) . "</td>";
@@ -212,7 +208,7 @@ $today = date('Y-m-d');
                                                 echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . 
                                                      date('H:i', strtotime($row['Jam_Mulai'])) . " - " . 
                                                      date('H:i', strtotime($row['Jam_Selesai'])) . "</td>";
-                                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm " . $quota_color . "'>" . $sisa_kuota . "</td>";
+                                            
                                                 echo "</tr>";
                                             }
                                         }
