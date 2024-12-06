@@ -5,9 +5,9 @@ session_start();
 function connectDB()
 {
     $host = 'localhost';
-    $dbname = 'PoliklinikX';
-    $username = 'root';  // Replace with your MySQL username
-    $password = '';      // Replace with your MySQL password
+    $dbname = 'poliklinikx'; // sesuaikan dengan nama database Anda
+    $username = 'root';
+    $password = '';
 
     try {
         $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -69,48 +69,85 @@ if (isset($_POST['edit_patient'])) {
     }
 }
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-// Fetch specializations
-try {
-    $spec_query = $conn->query("SELECT DISTINCT Spesialis FROM dokter");
-    $specializations = $spec_query->fetchAll(PDO::FETCH_COLUMN);
-} catch (PDOException $e) {
-    $error_message = "Error fetching specializations: " . $e->getMessage();
-}
+// Aktifkan error reporting untuk debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-// Display success/error messages if they exist
-if (isset($_SESSION['success_message'])) {
-    echo "<script>alert('" . htmlspecialchars($_SESSION['success_message']) . "');</script>";
-    unset($_SESSION['success_message']);
-}
-if (isset($_SESSION['error_message'])) {
-    echo "<script>alert('" . htmlspecialchars($_SESSION['error_message']) . "');</script>";
-    unset($_SESSION['error_message']);
-}
-
-// Add this after the existing code, before the closing PHP tag
-if(isset($_GET['get_patient']) && !empty($_GET['nik'])) {
+// Handle Add Patient Action
+if (isset($_POST['add_patient'])) {
     try {
-        $stmt = $conn->prepare("SELECT * FROM Pasien WHERE NIK = ?");
-        $stmt->execute([$_GET['nik']]);
-        $patient = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if ($patient) {
-            header('Content-Type: application/json');
-            echo json_encode($patient);
+
+        // Validasi input
+        if (empty($_POST['nik']) || empty($_POST['nama']) || empty($_POST['tanggal_lahir']) || empty($_POST['jenis_kelamin'])) {
+            throw new Exception("Semua field harus diisi");
+        }
+
+        if (strlen($_POST['nik']) !== 16 || !is_numeric($_POST['nik'])) {
+            throw new Exception("NIK harus 16 digit angka");
+        }
+
+        // Check if NIK already exists
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ?");
+        $stmt->execute([$_POST['nik']]);
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception("NIK sudah terdaftar");
+        }
+
+        // Generate nomor rekam medis
+        $year = date('Y');
+        $stmt = $conn->query("SELECT MAX(CAST(SUBSTRING_INDEX(Nomor_Rekam_Medis, '-', -1) AS UNSIGNED)) as max_num FROM Pasien WHERE Nomor_Rekam_Medis LIKE 'RMOffline-$year-%'");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $next_num = ($result['max_num'] ?? 0) + 1;
+        $nomor_rm = sprintf("RMOffline-%s-%05d", $year, $next_num);
+
+        // Calculate age
+        $birthDate = new DateTime($_POST['tanggal_lahir']);
+        $today = new DateTime();
+        $age = $today->diff($birthDate)->y;
+
+        // Insert data
+        $stmt = $conn->prepare("INSERT INTO Pasien (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur) VALUES (?, ?, ?, ?, ?, ?)");
+
+        $success = $stmt->execute([
+            $_POST['nik'],
+            $_POST['nama'],
+            $_POST['tanggal_lahir'],
+            $_POST['jenis_kelamin'],
+            $nomor_rm,
+            $age
+        ]);
+
+        if ($success) {
+            $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
+            header("Location: manage_patients.php");
             exit();
         } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Patient not found']);
-            exit();
+            throw new Exception("Gagal menyimpan data ke database");
         }
-    } catch(PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
-        exit();
+    } catch (PDOException $e) {
+        $_SESSION['error_message'] = "Database Error: " . $e->getMessage();
+    } catch (Exception $e) {
+        $_SESSION['error_message'] = $e->getMessage();
     }
 }
 
+// Tampilkan pesan error/success
+if (isset($_SESSION['error_message'])) {
+    echo "<div class='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative' role='alert'>";
+    echo $_SESSION['error_message'];
+    echo "</div>";
+    unset($_SESSION['error_message']);
+}
+
+if (isset($_SESSION['success_message'])) {
+    echo "<div class='bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative' role='alert'>";
+    echo $_SESSION['success_message'];
+    echo "</div>";
+    unset($_SESSION['success_message']);
+}
 ?>
 
 <!DOCTYPE html>
@@ -147,6 +184,10 @@ if(isset($_GET['get_patient']) && !empty($_GET['nik'])) {
                         <i class="fas fa-users"></i>
                         <span>Kelola Pasien</span>
                     </a>
+                    <a href="pendaftaran_offline.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-notes-medical"></i>
+                        <span>Pendaftaran Pemeriksaan</span>
+                    </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
@@ -173,11 +214,11 @@ if(isset($_GET['get_patient']) && !empty($_GET['nik'])) {
             <!-- Header -->
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold">Kelola Pasien</h1>
-                <a href="add_patient.php"
+                <button onclick="openModal('add')"
                     class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
                     <i class="fas fa-plus"></i>
                     <span>Tambah Pasien</span>
-                </a>
+                </button>
             </div>
 
             <!-- Patient List -->
@@ -386,7 +427,7 @@ if(isset($_GET['get_patient']) && !empty($_GET['nik'])) {
     <!-- Patient Modal -->
     <div id="patientModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity" onclick="closeModal()">
+            <div class="fixed inset-0 transition-opacity" onclick="closeModal('add')">
                 <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
             </div>
 
@@ -395,82 +436,39 @@ if(isset($_GET['get_patient']) && !empty($_GET['nik'])) {
                 <div class="p-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Tambah Pasien Baru</h3>
 
-                    <form id="patientForm" class="space-y-4">
-                        <!-- Patient Information Section -->
+                    <form method="POST" action="" class="space-y-4">
+                        <input type="hidden" name="add_patient" value="1">
+
                         <div>
-                            <h4 class="text-md font-semibold mb-2">Informasi Pasien</h4>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Nama Lengkap</label>
-                                    <input type="text" name="nama" required
-                                        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">NIK</label>
-                                    <input type="text" name="nik" required maxlength="16"
-                                        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Lahir</label>
-                                    <input type="date" name="tanggal_lahir" required
-                                        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Jenis Kelamin</label>
-                                    <select name="jenis_kelamin" required
-                                        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                        <option value="Laki-laki">Laki-laki</option>
-                                        <option value="Perempuan">Perempuan</option>
-                                    </select>
-                                </div>
-                            </div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">NIK</label>
+                            <input type="text" name="nik" required maxlength="16"
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
                         </div>
 
-                        <!-- Appointment Registration Section -->
                         <div>
-                            <h4 class="text-md font-semibold mb-2">Pendaftaran Pemeriksaan</h4>
-                            <div class="mb-4">
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Spesialis</label>
-                                <select id="specialization"
-                                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                    <option value="">Pilih Spesialis</option>
-                                    <?php foreach ($specializations as $spec): ?>
-                                        <option value="<?php echo htmlspecialchars($spec); ?>">
-                                            <?php echo htmlspecialchars($spec); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Nama Lengkap</label>
+                            <input type="text" name="nama" required
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
+                        </div>
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Dokter</label>
-                                    <select name="doctor" id="doctor" required
-                                        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                        <option value="">Pilih Spesialis Terlebih Dahulu</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal
-                                        Pendaftaran</label>
-                                    <input type="date" name="registration_date" id="registration_date" required
-                                        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                </div>
-                            </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Lahir</label>
+                            <input type="date" name="tanggal_lahir" required
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
+                        </div>
 
-                            <div class="mt-4">
-                                <label class="block text-gray-700 text-sm font-bold mb-2">Pilih Jadwal</label>
-                                <select name="schedule" id="schedule" required
-                                    class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
-                                    <option value="">Pilih Jadwal</option>
-                                </select>
-                            </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Jenis Kelamin</label>
+                            <select name="jenis_kelamin" required
+                                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500">
+                                <option value="">Pilih Jenis Kelamin</option>
+                                <option value="Laki-laki">Laki-laki</option>
+                                <option value="Perempuan">Perempuan</option>
+                            </select>
                         </div>
 
                         <div class="mt-6 flex justify-end space-x-3">
-                            <button type="button" onclick="closeModal()"
+                            <button type="button" onclick="closeModal('add')"
                                 class="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100">
                                 Batal
                             </button>
@@ -484,151 +482,7 @@ if(isset($_GET['get_patient']) && !empty($_GET['nik'])) {
         </div>
     </div>
 
-    <script>
-        // Add this to your existing script
 
-        function openOfflineRegistration(nik) {
-            fetch(`manage_patients.php?get_patient=1&nik=${encodeURIComponent(nik)}`)
-                .then(response => response.json())
-                .then(patient => {
-                    document.getElementById('offline_nik').value = patient.NIK;
-                    document.getElementById('offline_nama').value = patient.Nama;
-                    document.getElementById('offline_tanggal_lahir').value = patient.Tanggal_Lahir;
-
-                    document.getElementById('offlineRegistrationModal').classList.remove('hidden');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Gagal mengambil data pasien');
-                });
-        }
-
-        function closeModal(type) {
-            if (type === 'offline') {
-                document.getElementById('offlineRegistrationModal').classList.add('hidden');
-            } else if (type === 'edit') {
-                document.getElementById('editModal').classList.add('hidden');
-            } else {
-                document.getElementById('patientModal').classList.add('hidden');
-            }
-        }
-
-        // Modify existing event listeners for offline registration
-        document.getElementById('offline_specialization').addEventListener('change', function () {
-            const spesialis = this.value;
-            const doctorSelect = document.getElementById('offline_doctor');
-
-            // Clear existing options
-            doctorSelect.innerHTML = '<option value="">Pilih Dokter</option>';
-            document.getElementById('offline_schedule').innerHTML = '<option value="">Pilih Jadwal</option>';
-
-            if (!spesialis) return;
-
-            // Fetch doctors for selected specialization
-            fetch(`get_doctors.php?spesialis=${encodeURIComponent(spesialis)}`)
-                .then(response => response.json())
-                .then(doctors => {
-                    doctors.forEach(doctor => {
-                        const option = document.createElement('option');
-                        option.value = doctor.ID_Dokter;
-                        option.textContent = doctor.Nama;
-                        doctorSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error fetching doctors:', error));
-        });
-
-        // Update schedules for offline registration
-        function updateOfflineSchedules() {
-            const doctorId = document.getElementById('offline_doctor').value;
-            const registrationDate = document.getElementById('offline_registration_date').value;
-            const scheduleSelect = document.getElementById('offline_schedule');
-
-            if (!doctorId || !registrationDate) return;
-
-            // Clear existing options
-            scheduleSelect.innerHTML = '<option value="">Memuat jadwal...</option>';
-
-            // Fetch schedules for selected doctor
-            fetch(`get_schedule.php?doctor_id=${encodeURIComponent(doctorId)}&registration_day=${encodeURIComponent(registrationDate)}`)
-                .then(response => response.json())
-                .then(schedules => {
-                    scheduleSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
-
-                    schedules.forEach(schedule => {
-                        const option = document.createElement('option');
-                        option.value = schedule.ID_Jadwal;
-
-                        // Calculate available quotas
-                        const isToday = registrationDate === new Date().toISOString().split('T')[0];
-                        const usedQuota = isToday ? schedule.used_quota_today : schedule.used_quota_tomorrow;
-
-                        // Calculate available slots for both online and offline
-                        const availableOffline = schedule.Kuota_Offline - usedQuota;
-
-                        // Format the schedule display
-                        const scheduleText = `${schedule.Hari}: ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai} 
-                        (Sisa Kuota Offline: ${availableOffline})`;
-                        option.textContent = scheduleText;
-
-                        // Disable option if no offline quota available
-                        if (availableOffline <= 0) {
-                            option.disabled = true;
-                            option.textContent += ' - PENUH';
-                        }
-
-                        scheduleSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error fetching schedules:', error));
-        }
-
-        // Add event listeners for offline registration doctor and date selection
-        document.getElementById('offline_doctor').addEventListener('change', updateOfflineSchedules);
-        document.getElementById('offline_registration_date').addEventListener('change', updateOfflineSchedules);
-
-        // Set minimum date for offline registration to today
-        const offlineRegistrationDateInput = document.getElementById('offline_registration_date');
-        const today = new Date().toISOString().split('T')[0];
-        offlineRegistrationDateInput.min = today;
-        offlineRegistrationDateInput.value = today;
-
-        // Handle offline registration form submission
-        document.getElementById('offlineRegistrationForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            formData.append('registration_type', 'offline');
-
-            // Validate required fields
-            const requiredFields = ['doctor', 'schedule'];
-            for (const field of requiredFields) {
-                if (!formData.get(field)) {
-                    alert('Semua field harus diisi');
-                    return;
-                }
-            }
-
-            // Submit form
-            fetch('process_offline_registration.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan saat mendaftarkan pasien.');
-                });
-        });
-    </script>
     <script>
         function openModal(type, data = null) {
             if (type === 'edit') {
@@ -668,131 +522,6 @@ if(isset($_GET['get_patient']) && !empty($_GET['nik'])) {
                 alert('Delete patient with NIK: ' + nik);
             }
         }
-
-        // Function to handle specialization change
-        document.getElementById('specialization').addEventListener('change', function () {
-            const spesialis = this.value;
-            const doctorSelect = document.getElementById('doctor');
-
-            // Clear existing options
-            doctorSelect.innerHTML = '<option value="">Pilih Dokter</option>';
-            document.getElementById('schedule').innerHTML = '<option value="">Pilih Jadwal</option>';
-
-            if (!spesialis) return;
-
-            // Fetch doctors for selected specialization
-            fetch(`get_doctors.php?spesialis=${encodeURIComponent(spesialis)}`)
-                .then(response => response.json())
-                .then(doctors => {
-                    doctors.forEach(doctor => {
-                        const option = document.createElement('option');
-                        option.value = doctor.ID_Dokter;
-                        option.textContent = doctor.Nama;
-                        doctorSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error fetching doctors:', error));
-        });
-
-        // Function to handle doctor and date selection
-        function updateSchedules() {
-            const doctorId = document.getElementById('doctor').value;
-            const registrationDate = document.getElementById('registration_date').value;
-            const scheduleSelect = document.getElementById('schedule');
-
-            if (!doctorId || !registrationDate) return;
-
-            // Clear existing options
-            scheduleSelect.innerHTML = '<option value="">Memuat jadwal...</option>';
-
-            // Fetch schedules for selected doctor
-            fetch(`get_schedule.php?doctor_id=${encodeURIComponent(doctorId)}&registration_day=${encodeURIComponent(registrationDate)}`)
-                .then(response => response.json())
-                .then(schedules => {
-                    scheduleSelect.innerHTML = '<option value="">Pilih Jadwal</option>';
-
-                    schedules.forEach(schedule => {
-                        const option = document.createElement('option');
-                        option.value = schedule.ID_Jadwal;
-
-                        // Calculate available quotas
-                        const isToday = registrationDate === new Date().toISOString().split('T')[0];
-                        const usedQuota = isToday ? schedule.used_quota_today : schedule.used_quota_tomorrow;
-
-                        // Calculate available slots for both online and offline
-                        const availableOnline = schedule.Kuota_Online - usedQuota;
-                        const availableOffline = schedule.Kuota_Offline - usedQuota;
-                        const totalAvailable = availableOnline + availableOffline;
-
-                        // Format the schedule display
-                        const scheduleText = `${schedule.Hari}: ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai} 
-                    ( Offline: ${schedule.Kuota_Offline})`;
-                        option.textContent = scheduleText;
-
-                        // Disable option if no quota available
-                        if (totalAvailable <= 0) {
-                            option.disabled = true;
-                            option.textContent += ' - PENUH';
-                        }
-
-                        scheduleSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error fetching schedules:', error));
-        }
-
-        // Add event listeners for doctor and date selection
-        document.getElementById('doctor').addEventListener('change', updateSchedules);
-        document.getElementById('registration_date').addEventListener('change', updateSchedules);
-
-        // Set minimum date for registration to today
-        const registrationDateInput = document.getElementById('registration_date');
-        const today = new Date().toISOString().split('T')[0];
-        registrationDateInput.min = today;
-        registrationDateInput.value = today;
-
-        document.getElementById('patientForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-
-            // Validate NIK
-            const nik = formData.get('nik');
-            if (nik.length !== 16 || !/^\d+$/.test(nik)) {
-                alert('NIK harus 16 digit angka');
-                return;
-            }
-
-            // Validate required fields
-            const requiredFields = ['nama', 'nik', 'tanggal_lahir', 'jenis_kelamin', 'doctor', 'schedule'];
-            for (const field of requiredFields) {
-                if (!formData.get(field)) {
-                    alert('Semua field harus diisi');
-                    return;
-                }
-            }
-
-            // Submit form
-            fetch('process_patient.php', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        location.reload();
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan saat menyimpan data.');
-                });
-        });
-
-
     </script>
 </body>
 

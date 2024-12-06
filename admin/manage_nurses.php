@@ -68,6 +68,7 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,6 +76,7 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
@@ -97,6 +99,10 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
                     <a href="manage_patients.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-users"></i>
                         <span>Kelola Pasien</span>
+                    </a>
+                    <a href="pendaftaran_offline.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-notes-medical"></i>
+                        <span>Pendaftaran Pemeriksaan</span>
                     </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
                         <i class="fas fa-user-nurse"></i>
@@ -122,10 +128,10 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
             <?php if ($message): ?>
-                <div class="mb-4 p-4 <?php 
-                    echo $messageType === 'success' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'; 
+                <div class="mb-4 p-4 <?php
+                echo $messageType === 'success'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800';
                 ?> rounded-md">
                     <?php echo htmlspecialchars($message); ?>
                 </div>
@@ -135,33 +141,33 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
             <div class="bg-white rounded-lg shadow">
                 <div class="p-6">
                     <h2 class="text-xl font-bold mb-4">Kelola Perawat</h2>
-                    
+
                     <!-- Form Tambah/Edit Perawat -->
                     <form action="" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <input type="hidden" name="perawat_id" id="perawat_id">
-                        
+
                         <div>
                             <label for="nama" class="block text-sm font-medium text-gray-700">Nama Perawat</label>
-                            <input type="text" id="nama" name="nama" required 
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                            <input type="text" id="nama" name="nama" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                         </div>
-                        
+
                         <div>
                             <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                            <input type="text" id="username" name="username" required 
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                            <input type="text" id="username" name="username" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                         </div>
-                        
+
                         <div class="col-span-2">
                             <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <input type="password" id="password" name="password" 
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                            <input type="password" id="password" name="password"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                             <p class="mt-1 text-sm text-gray-500">Kosongkan jika tidak ingin mengubah password</p>
                         </div>
-                        
+
                         <div class="col-span-full">
-                            <button type="submit" 
-                                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button type="submit"
+                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 Simpan
                             </button>
                         </div>
@@ -173,24 +179,32 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Nama</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Username</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php while ($row = $perawatQuery->fetch_assoc()): ?>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Nama']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Username']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($row['Nama']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($row['Username']); ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex flex-col space-y-2">
-                                                <button onclick="editPerawat(<?= htmlspecialchars(json_encode($row)); ?>)" 
-                                                        class="text-white bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md text-sm">
+                                                <button onclick="editPerawat(<?= htmlspecialchars(json_encode($row)); ?>)"
+                                                    class="text-white bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md text-sm">
                                                     Edit
                                                 </button>
-                                                <button onclick="confirmDelete(<?= $row['ID_Perawat']; ?>)" 
-                                                        class="text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm">
+                                                <button onclick="confirmDelete(<?= $row['ID_Perawat']; ?>)"
+                                                    class="text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm">
                                                     Hapus
                                                 </button>
                                             </div>
@@ -220,4 +234,5 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
         }
     </script>
 </body>
+
 </html>
