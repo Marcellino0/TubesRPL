@@ -1,395 +1,192 @@
 <?php
-session_start();
-require_once(__DIR__ . '/config/db_connection.php');
-require_once(__DIR__ . '/includes/messages.php');
-
-// Function to check and get active session
-function getActiveUserSession() {
-    if (isset($_SESSION['user_id']) && isset($_SESSION['user_type'])) {
-        return [
-            'user_id' => $_SESSION['user_id'],
-            'user_type' => $_SESSION['user_type']
-        ];
-    }
-    return null;
-}
-
-// Function to validate session against database
-function validateUserSession($userId, $userType, $conn) {
-    $columnName = '';
-    $table = '';
-    
-    switch ($userType) {
-        case 'admin':
-            $table = 'Administrator';
-            $columnName = 'ID_Admin';
-            break;
-        case 'dokter':
-            $table = 'Dokter';
-            $columnName = 'ID_Dokter';
-            break;
-        case 'perawat':
-            $table = 'Perawat';
-            $columnName = 'ID_Perawat';
-            break;
-        case 'pasien':
-            $table = 'Pasien';
-            $columnName = 'ID_Pasien';
-            break;
-        default:
-            return false;
-    }
-    
-    $query = "SELECT $columnName FROM $table WHERE $columnName = ? LIMIT 1";
-    try {
-        $stmt = $conn->prepare($query);
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        return $result->num_rows > 0;
-    } catch (Exception $e) {
-        error_log("Database error: " . $e->getMessage());
-        return false;
-    }
-}
-
-// Check for active session
-$activeSession = getActiveUserSession();
-
-if ($activeSession) {
-    // Validate session against database
-    if (validateUserSession($activeSession['user_id'], $activeSession['user_type'], $conn)) {
-        // Redirect to appropriate dashboard
-        switch ($activeSession['user_type']) {
-            case 'admin':
-                header("Location: admin/admin_dashboard.php");
-                break;
-            case 'dokter':
-                header("Location: doctor/doctor_dashboard.php");
-                break;
-            case 'perawat':
-                header("Location: nurse/nurse_dashboard.php");
-                break;
-            case 'pasien':
-                header("Location: patient/patient_dashboard.php");
-                break;
-        }
-        exit();
-    } else {
-        // Invalid session - clear and show login
-        session_destroy();
-    }
-}
+// Tidak perlu memulai session atau memuat file database pada halaman ini
 ?>
 
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Poliklinik X</title>
+    <title>Medical Services</title>
     <style>
-        * {
+        body {
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            background-color: #f8f9fa;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
+        header {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            padding: 20px;
+            padding: 10px 20px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
+        header .logo {
+            max-width: 120px; /* Ukuran logo yang lebih kecil */
+        }
+
+        header .logo img {
+            width: 100%; /* Pastikan logo tidak melebihi ukuran container */
+            height: auto;
+            transform: scale(1.2); /* Memperbesar logo 20% */
+            transition: transform 0.3s ease; /* Animasi transisi agar perubahan ukuran lebih halus */
+        }
+
+        header .logo:hover img {
+            transform: scale(1.1); /* Menambahkan efek saat hover */
+        }
+
+        header nav ul {
+            list-style: none;
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            margin: 0;
+            padding: 0;
         }
 
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 450px;
-            margin: 0 auto;
-        }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .login-header h1 {
-            color: #2c3e50;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .login-header p {
-            color: #7f8c8d;
-            font-size: 1.1em;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #2c3e50;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            border-color: #3498db;
-            outline: none;
-        }
-
-        .password-input {
-            position: relative;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #666;
-            cursor: pointer;
-            font-size: 14px;
-            padding: 5px;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .btn:hover {
-            background: #2980b9;
-        }
-
-        .form-links {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .form-links a {
-            color: #3498db;
-            text-decoration: none;
-            font-size: 0.95em;
-        }
-
-        .form-links a:hover {
-            text-decoration: underline;
-        }
-
-        .separator {
+        header nav ul li {
             margin: 0 10px;
-            color: #bdc3c7;
         }
 
-        .info-box {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        header nav ul li a {
+            text-decoration: none;
+            color: #333;
+            font-size: 16px;
         }
-
-        .info-box h3 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 1.5em;
-        }
-
-        .info-content {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-        }
-
-        .info-item {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            transition: transform 0.3s ease;
-        }
-
-        .info-item:hover {
-            transform: translateY(-5px);
-        }
-
-        .info-item h4 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .info-item p,
-        .info-item ul {
-            color: #666;
-            line-height: 1.6;
-        }
-
-        .info-item ul {
-            padding-left: 20px;
+        header nav ul li a.btn {
+            display: inline-block;
+            padding: 12px 25px; /* Menambah padding agar tombol lebih besar */
+            background-color: #28a745;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px; /* Membuat tombol lebih bulat */
             margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center; /* Menjaga teks tombol tetap terpusat */
+            transition: background-color 0.3s ease, transform 0.2s ease; /* Menambahkan transisi */
         }
 
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            color: white;
+        header nav ul li a.btn:hover {
+            background-color: #218838; /* Warna lebih gelap saat hover */
+            transform: scale(1.05); /* Efek pembesaran saat hover */
         }
 
-        .alert-success {
-            background-color: #2ecc71;
+
+        .hero-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px 20px;
+            background-color: #ffffff;
+        }
+        .hero-section .content {
+            max-width: 50%;
+            margin-top: -30px; /* Memindahkan teks lebih tinggi sedikit */
+            padding-right: 20px; /* Memberikan sedikit ruang di sisi kanan agar teks tidak terlalu rapat dengan gambar */
         }
 
-        .alert-error {
-            background-color: #e74c3c;
+        .hero-section .content h1 {
+            font-size: 50px; /* Membesarkan ukuran teks judul */
+            color: #333;
+            line-height: 1.3; /* Memberikan jarak antar baris yang lebih nyaman untuk teks panjang */
+            font-weight: bold; /* Menambahkan ketebalan pada teks */
+            margin-bottom: 20px; /* Memberikan ruang antara judul dan paragraf */
         }
 
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-
-            .login-box,
-            .info-box {
-                padding: 20px;
-            }
-
-            .info-content {
-                grid-template-columns: 1fr;
-            }
+        .hero-section .content p {
+            color: #666;
+            margin: 20px 0;
+            font-size: 20px; /* Membesarkan ukuran teks paragraf */
+            line-height: 1.6; /* Memberikan jarak antar baris untuk kenyamanan membaca */
         }
+
+        .hero-section .content .btn {
+            display: inline-block;
+            padding: 14px 30px; /* Menambah padding agar tombol lebih besar */
+            background-color: #28a745;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px; /* Membuat tombol lebih bulat */
+            margin-top: 20px; /* Jarak antara tombol dan teks */
+            font-size: 20px; /* Membesarkan ukuran teks tombol */
+            font-weight: bold; /* Menebalkan teks tombol */
+            text-align: center; /* Menjaga agar teks tetap terpusat dalam tombol */
+            transition: background-color 0.3s ease, transform 0.2s ease; /* Menambahkan transisi saat hover */
+        }
+
+        .hero-section .content .btn:hover {
+            background-color: #218838; /* Warna tombol lebih gelap saat hover */
+            transform: scale(1.05); /* Efek pembesaran saat hover */
+        }
+
+
+        .hero-section .product-item {
+            width: 40%; /* Menyesuaikan lebar gambar */
+            aspect-ratio: 1; /* Menetapkan rasio 1:1 */
+            position: relative;
+            overflow: hidden; /* Agar gambar tidak keluar dari container */
+            border-radius: 50%; /* Membuat gambar menjadi bulat */
+        }
+
+        .hero-section .product-item img {
+            object-fit: cover; /* Memastikan gambar mengisi container dengan benar */
+            width: 100%;
+            height: 100%;
+            border-radius: 50%; /* Memastikan gambar tetap bulat */
+        }
+        
+        header .logo:hover img {
+            transform: scale(1.1); /* Menambahkan efek saat hover */
+        }
+        header .logo {
+            max-width: 180px; /* Ukuran logo yang lebih besar */
+            margin-left: 20px; /* Menambahkan jarak ke kiri agar logo tidak terlalu dekat dengan sisi */
+        }
+
+        header .logo img {
+            width: 100%; /* Pastikan logo mengisi lebar container */
+            height: auto;
+            transform: scale(1.5); /* Memperbesar logo 50% */
+            transition: transform 0.3s ease; /* Animasi transisi agar perubahan ukuran lebih halus */
+        }
+
+        header .logo:hover img {
+            transform: scale(1.3); /* Menambahkan efek saat hover (memperbesar sedikit saat hover) */
+        }
+
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="login-box">
-            <div class="login-header">
-                <h1>Poliklinik X</h1>
-                <p>Sistem Informasi Manajemen Poliklinik</p>
-            </div>
-
-            <?php displayMessage(); ?>
-
-            <form action="" method="POST" class="login-form">
-                <div class="form-group">
-                    <label for="user_type">Login Sebagai:</label>
-                    <select name="user_type" id="user_type" required onchange="updateFormAction(this.value)">
-                        <option value="pasien">Pasien</option>
-                        <option value="dokter">Dokter</option>
-                        <option value="admin">Administrator</option>
-                        <option value="perawat">Perawat</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="username">Username:</label>
-                    <input type="text" id="username" name="username" required autocomplete="username">
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password:</label>
-                    <div class="password-input">
-                        <input type="password" id="password" name="password" required autocomplete="current-password">
-                        <button type="button" class="toggle-password" onclick="togglePassword()">Show</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <button type="submit" class="btn">Login</button>
-                </div>
-
-                <div class="form-links" id="patient-links">
-                    <a href="forgot_password.php">Lupa Password?</a>
-                    <span class="separator">|</span>
-                    <a href="./patient/register.php">Daftar Akun Baru</a>
-                </div>
-            </form>
+    <header>
+        <div class="logo">
+            <img src="./img/logo.png" alt="logo">
         </div>
+        <nav>
+            <ul>
+                <li><a href="login.php" class="btn">Login</a></li>
+            </ul>
+        </nav>
+    </header>
 
-        
-    </div>
-
-    <script>
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const toggleBtn = document.querySelector('.toggle-password');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleBtn.textContent = 'Hide';
-            } else {
-                passwordInput.type = 'password';
-                toggleBtn.textContent = 'Show';
-            }
-        }
-
-        function updateFormAction(userType) {
-            const form = document.querySelector('.login-form');
-            const patientLinks = document.getElementById('patient-links');
-            
-            switch(userType) {
-    case 'perawat':
-        form.action = 'nurse/process_login.php';
-        break;
-    case 'admin':
-        form.action = 'admin/process_login.php';
-        break;
-    case 'dokter':
-        form.action = 'doctor/process_login.php';
-        break;
-    case 'pasien':
-        form.action = 'patient/process_login.php';
-        break;
-}
-            
-            patientLinks.style.display = userType === 'pasien' ? 'block' : 'none';
-        }
-
-        // Set initial state on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const userType = document.getElementById('user_type');
-            updateFormAction(userType.value);
-        });
-    </script>
+    <section class="hero-section">
+        <div class="content">
+            <h1>Pelayanan Kesehatan 
+            <span style="color: #28a745;">Poliklinik X</span></h1>
+            <p>
+                Kehidupan adalah kurnia Tuhan YME dan kesehatan merupakan hak semua orang, dengan ini Poliklinik X hadir untuk memberikan pelayanan kesehatan bagi masyarakat dengan mutu pelayanan yang baik. Serta dengan kesetiaan dan kesiapsediaan untuk terus melakukan pengembangan pelayanan kesehatan demi keselamatan dan kesembuhan pasien.
+            </p>
+            <br>
+            <p>Apabila belum mempunyai akun bisa klik tombol register di bawah ini</p>
+            <a href="./patient/register.php" class="btn">Register Now</a>
+        </div>
+        <div class="product-item">
+            <img src="./img/doctor.jpg" alt="doctor">
+        </div>
+    </section>
 </body>
 </html>
