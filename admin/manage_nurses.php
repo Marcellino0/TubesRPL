@@ -104,6 +104,10 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
                         <i class="fas fa-notes-medical"></i>
                         <span>Pendaftaran Pemeriksaan</span>
                     </a>
+                    <a href="pendaftaran_ulang.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-globe"></i>
+                        <span>Pendaftaran Ulang</span>
+                    </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
@@ -130,8 +134,8 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
         </aside>
 
         <!-- Main Content -->
-         <!-- Main Content -->
-         <main class="flex-1 ml-64 p-8">
+        <!-- Main Content -->
+        <main class="flex-1 ml-64 p-8">
             <?php if ($message): ?>
                 <div class="mb-4 p-4 <?php
                 echo $messageType === 'success'
@@ -184,13 +188,16 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Nama
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Username
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Aksi
                                     </th>
                                 </tr>
@@ -199,15 +206,18 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
                                 <?php while ($row = $perawatQuery->fetch_assoc()): ?>
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Nama']); ?></td>
+                                            <?= htmlspecialchars($row['Nama']); ?>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Username']); ?></td>
+                                            <?= htmlspecialchars($row['Username']); ?>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3 flex">
                                             <a href="edit_nurse.php?id=<?= $row['ID_Perawat']; ?>"
                                                 class="text-blue-600 hover:text-blue-900">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form method="POST" action="delete_nurse.php" class="inline" onsubmit="return confirmDelete(<?= $row['ID_Perawat']; ?>)">
+                                            <form method="POST" action="delete_nurse.php" class="inline"
+                                                onsubmit="return confirmDelete(<?= $row['ID_Perawat']; ?>)">
                                                 <input type="hidden" name="perawat_id" value="<?= $row['ID_Perawat']; ?>">
                                                 <button type="submit" class="text-red-600 hover:text-red-900">
                                                     <i class="fas fa-trash"></i>

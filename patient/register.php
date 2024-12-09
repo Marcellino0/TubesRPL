@@ -325,7 +325,7 @@ if(isset($_POST['register'])) {
                 </div>
             </form>
 
-            <a href="../index.php" class="back-link">Kembali ke Halaman Login</a>
+            <a href="../login.php" class="back-link">Kembali ke Halaman Login</a>
         </div>
     </div>
 </body>

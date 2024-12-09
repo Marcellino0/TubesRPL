@@ -110,6 +110,10 @@ $dokterQuery = $conn->query("
                         <i class="fas fa-notes-medical"></i>
                         <span>Pendaftaran Pemeriksaan</span>
                     </a>
+                    <a href="pendaftaran_ulang.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-globe"></i>
+                        <span>Pendaftaran Ulang</span>
+                    </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
@@ -139,7 +143,8 @@ $dokterQuery = $conn->query("
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
             <?php if ($message): ?>
-                <div class="mb-4 p-4 <?php echo $messageType === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?> rounded-md">
+                <div
+                    class="mb-4 p-4 <?php echo $messageType === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?> rounded-md">
                     <?php echo htmlspecialchars($message); ?>
                 </div>
             <?php endif; ?>
@@ -204,19 +209,24 @@ $dokterQuery = $conn->query("
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Nama
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Spesialis
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Username
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Total Jadwal
                                     </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Aksi
                                     </th>
                                 </tr>
@@ -225,13 +235,17 @@ $dokterQuery = $conn->query("
                                 <?php while ($row = $dokterQuery->fetch_assoc()): ?>
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Nama']); ?></td>
+                                            <?= htmlspecialchars($row['Nama']); ?>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Spesialis']); ?></td>
+                                            <?= htmlspecialchars($row['Spesialis']); ?>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Username']); ?></td>
+                                            <?= htmlspecialchars($row['Username']); ?>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['total_jadwal']); ?></td>
+                                            <?= htmlspecialchars($row['total_jadwal']); ?>
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3 flex">
                                             <a href="#" onclick="editDokter(<?= htmlspecialchars(json_encode($row)); ?>)"
                                                 class="text-blue-600 hover:text-blue-900">
@@ -239,7 +253,8 @@ $dokterQuery = $conn->query("
                                             </a>
                                             <form method="POST" action="" class="inline" onsubmit="return confirmDelete()">
                                                 <input type="hidden" name="dokter_id" value="<?= $row['ID_Dokter']; ?>">
-                                                <button type="submit" name="delete_doctor" class="text-red-600 hover:text-red-900">
+                                                <button type="submit" name="delete_doctor"
+                                                    class="text-red-600 hover:text-red-900">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
