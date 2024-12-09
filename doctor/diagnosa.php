@@ -40,10 +40,7 @@ if($search) {
                         <i class="fas fa-home"></i>
                         <span>Dashboard</span>
                     </a>
-                    <a href="medical_records.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
-                        <i class="fas fa-file-medical"></i>
-                        <span>Rekam Medis</span>
-                    </a>
+                    
                     <a href="diagnosa.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
                         <i class="fas fa-users"></i>
                         <span>Mencatat Diagnosa</span>
