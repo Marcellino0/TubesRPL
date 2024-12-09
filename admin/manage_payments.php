@@ -138,6 +138,10 @@ $paymentQuery = $conn->query("
                         <i class="fas fa-notes-medical"></i>
                         <span>Pendaftaran Pemeriksaan</span>
                     </a>
+                    <a href="pendaftaran_ulang.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-globe"></i>
+                        <span>Pendaftaran Ulang</span>
+                    </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
