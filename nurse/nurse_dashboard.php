@@ -24,6 +24,8 @@ function getPendingExaminations($conn)
             AND DATE(rm.Tanggal) = DATE(p.Waktu_Daftar)
             WHERE p.Status = 'Menunggu'
             AND DATE(p.Waktu_Daftar) = CURDATE()
+            AND p.Verifikasi = 'Terverifikasi'
+            AND p.No_Antrian > 0
             ORDER BY p.No_Antrian ASC";
 
     $result = $conn->query($sql);

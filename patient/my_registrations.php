@@ -15,13 +15,15 @@ $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $patientData = $stmt->get_result()->fetch_assoc();
 
-// Rest of the database queries remain the same...
+// Fetch registrations with verification status
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pendaftaran,
         p.No_Antrian,
         p.Waktu_Daftar,
         p.Status,
+        p.Verifikasi,
+        p.Catatan_Verifikasi,
         p.Bukti_Reservasi,
         d.Nama as nama_dokter,
         d.Spesialis,
@@ -133,7 +135,29 @@ $registrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <?php echo htmlspecialchars($reg['Jam_Selesai']); ?>
                                     </p>
                                 </div>
-                                <div class="text-right">
+                                <div class="flex flex-col items-end space-y-2">
+                                    <!-- Verification Status -->
+                                    <div class="flex items-center space-x-2">
+                                        <?php
+                                        switch ($reg['Verifikasi']) {
+                                            case 'Terverifikasi':
+                                                echo '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                                        <i class="fas fa-check-circle mr-2"></i>Terverifikasi
+                                                      </span>';
+                                                break;
+                                            case 'Ditolak':
+                                                echo '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                                        <i class="fas fa-times-circle mr-2"></i>Ditolak
+                                                      </span>';
+                                                break;
+                                            default:
+                                                echo '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                                        <i class="fas fa-clock mr-2"></i>Menunggu Verifikasi
+                                                      </span>';
+                                        }
+                                        ?>
+                                    </div>
+                                    <!-- Registration Status -->
                                     <span class="px-3 py-1 rounded text-sm font-medium
                                         <?php
                                         switch ($reg['Status']) {
@@ -159,7 +183,13 @@ $registrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                 <div>
                                     <p class="text-sm text-gray-600">
                                         <span class="font-medium">No. Antrian:</span>
-                                        <?php echo htmlspecialchars($reg['No_Antrian']); ?>
+                                        <?php
+                                        if ($reg['Verifikasi'] === 'Terverifikasi') {
+                                            echo htmlspecialchars($reg['No_Antrian']);
+                                        } else {
+                                            echo '<span class="text-yellow-600">Menunggu verifikasi</span>';
+                                        }
+                                        ?>
                                     </p>
                                     <p class="text-sm text-gray-600">
                                         <span class="font-medium">Waktu Pendaftaran:</span>
@@ -184,25 +214,12 @@ $registrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                 <?php endif; ?>
                             </div>
 
-                            <?php if ($reg['Bukti_Reservasi']): ?>
-                                <div class="mt-4 pt-4 border-t">
-                                    <h3 class="font-medium mb-2">Bukti Reservasi:</h3>
-                                    <div class="flex items-center space-x-4">
-                                        <?php
-                                        $filePath = "../uploads/bukti_reservasi/" . htmlspecialchars($reg['Bukti_Reservasi']);
-                                        $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                                        ?>
-                                        <?php if (in_array($fileExtension, ['jpg', 'jpeg', 'png'])): ?>
-                                            <img src="<?php echo $filePath; ?>" alt="Bukti Reservasi"
-                                                class="h-24 w-auto rounded object-cover">
-                                        <?php else: ?>
-                                            <i class="fas fa-file-pdf text-4xl text-red-500"></i>
-                                        <?php endif; ?>
-                                        <a href="<?php echo $filePath; ?>" target="_blank"
-                                            class="text-blue-600 hover:text-blue-800 underline">
-                                            Lihat Bukti Reservasi
-                                        </a>
-                                    </div>
+                            <?php if ($reg['Catatan_Verifikasi']): ?>
+                                <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                                    <p class="text-sm text-gray-700">
+                                        <span class="font-medium">Catatan Verifikasi:</span><br>
+                                        <?php echo nl2br(htmlspecialchars($reg['Catatan_Verifikasi'])); ?>
+                                    </p>
                                 </div>
                             <?php endif; ?>
 

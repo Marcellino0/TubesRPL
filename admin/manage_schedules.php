@@ -170,9 +170,17 @@ $doctors = getDoctors($conn);
                         <i class="fas fa-notes-medical"></i>
                         <span>Pendaftaran Pemeriksaan</span>
                     </a>
+                    <a href="pendaftaran_ulang.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-globe"></i>
+                        <span>Pendaftaran Ulang</span>
+                    </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
+                    </a>
+                    <a href="manage_payments.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Kelola Pembayaran</span>
                     </a>
                 </nav>
             </div>
@@ -238,23 +246,17 @@ $doctors = getDoctors($conn);
                                     <td class="px-6 py-4"><?php echo htmlspecialchars($row['Hari']); ?></td>
                                     <td class="px-6 py-4"><?php echo htmlspecialchars($row['Jam_Mulai']); ?></td>
                                     <td class="px-6 py-4"><?php echo htmlspecialchars($row['Jam_Selesai']); ?></td>
-                                    <td class="px-6 py-4">
-
-                                        <?php echo htmlspecialchars($row['Kuota_Online']); ?>
-                                    </td>
-                                    <td class="px-6 py-4">
-
-                                        <?php echo htmlspecialchars($row['Kuota_Offline']); ?>
-                                    </td>
+                                    <td class="px-6 py-4"><?php echo htmlspecialchars($row['Kuota_Online']); ?></td>
+                                    <td class="px-6 py-4"><?php echo htmlspecialchars($row['Kuota_Offline']); ?></td>
                                     <td class="px-6 py-4"><?php echo htmlspecialchars($row['Status']); ?></td>
                                     <td class="px-6 py-4 text-center">
-                                        <button onclick='editSchedule(<?php echo json_encode($row); ?>)'
-                                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded mr-1">
+                                        <a href="#" onclick='editSchedule(<?php echo json_encode($row); ?>)'
+                                            class="text-blue-600 hover:text-blue-900">
                                             <i class="fas fa-edit"></i>
-                                        </button>
+                                        </a>
                                         <a href="?delete=<?php echo $row['ID_Jadwal']; ?>"
                                             onclick="return confirm('Apakah Anda yakin ingin menghapus jadwal ini?')"
-                                            class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded">
+                                            class="text-red-600 hover:text-red-900">
                                             <i class="fas fa-trash"></i>
                                         </a>
                                     </td>
@@ -316,8 +318,8 @@ $doctors = getDoctors($conn);
                                                 <div>
                                                     <label for="jam_mulai"
                                                         class="block text-sm font-medium text-gray-700">Jam
-                                                        Mulai</label>
-                                                    <input type="time" name="jam_mulai" id="jam_mulai" required
+                                                        Mulai</label><input type="time" name="jam_mulai" id="jam_mulai"
+                                                        required
                                                         class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                                                 </div>
 
@@ -378,20 +380,20 @@ $doctors = getDoctors($conn);
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            <button type="submit" form="scheduleForm"
-                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
-                                Simpan Jadwal
-                            </button>
-                            <button type="button" onclick="toggleModal('scheduleModal')"
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                                Batal
-                            </button>
+                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                                <button type="submit" form="scheduleForm"
+                                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                    Simpan Jadwal
+                                </button>
+                                <button type="button" onclick="toggleModal('scheduleModal')"
+                                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                    Batal
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+        </main>
         </main>
     </div>
 

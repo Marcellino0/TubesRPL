@@ -68,9 +68,17 @@ $today = date('Y-m-d');
                         <i class="fas fa-notes-medical"></i>
                         <span>Pendaftaran Pemeriksaan</span>
                     </a>
+                    <a href="pendaftaran_ulang.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-globe"></i>
+                        <span>Pendaftaran Ulang</span>
+                    </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
                         <span>Kelola Perawat</span>
+                    </a>
+                    <a href="manage_payments.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Kelola Pembayaran</span>
                     </a>
                 </nav>
             </div>
@@ -149,9 +157,7 @@ $today = date('Y-m-d');
                                         <th
                                             class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Jam Praktek</th>
-                                        <th
-                                            class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Sisa Kuota</th>
+
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -167,7 +173,7 @@ $today = date('Y-m-d');
                                             'Friday' => 'Jumat',
                                             'Saturday' => 'Sabtu'
                                         ];
-                                        
+
                                         $day = $dayNames[date('l')]; // Konversi hari ini ke bahasa Indonesia
                                     
                                         $sql = "SELECT 
@@ -185,41 +191,39 @@ $today = date('Y-m-d');
                                                JOIN Jadwal_Dokter j ON d.ID_Dokter = j.ID_Dokter
                                                WHERE j.Hari = :day
                                                AND j.Status = 'Aktif'";
-                                    
+
                                         // Debug: Print values
                                         echo "<!-- Current Day: " . $day . " -->"; // For debugging
-                                        
+                                    
                                         $stmt = $conn->prepare($sql);
                                         $stmt->bindParam(':today', $today);
                                         $stmt->bindParam(':day', $day);
                                         $stmt->execute();
-                                        
-                                        if($stmt->rowCount() === 0) {
+
+                                        if ($stmt->rowCount() === 0) {
                                             echo "<tr><td colspan='4' class='px-6 py-4 text-center text-gray-500'>Tidak ada dokter yang praktek hari ini</td></tr>";
                                         } else {
-                                            while($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                                $total_kuota = $row['Kuota_Offline'] + $row['Kuota_Online'];
-                                                $sisa_kuota = $total_kuota - $row['used_quota'];
-                                                $quota_color = $sisa_kuota <= 2 ? 'text-red-600' : 'text-green-600';
-                                                
+                                            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+
+
                                                 echo "<tr>";
                                                 echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . htmlspecialchars($row['Nama']) . "</td>";
                                                 echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . htmlspecialchars($row['Spesialis']) . "</td>";
-                                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" . 
-                                                     date('H:i', strtotime($row['Jam_Mulai'])) . " - " . 
-                                                     date('H:i', strtotime($row['Jam_Selesai'])) . "</td>";
-                                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm " . $quota_color . "'>" . $sisa_kuota . "</td>";
+                                                echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>" .
+                                                    date('H:i', strtotime($row['Jam_Mulai'])) . " - " .
+                                                    date('H:i', strtotime($row['Jam_Selesai'])) . "</td>";
+
                                                 echo "</tr>";
                                             }
                                         }
-                                    
+
                                         // Debug: Print query and parameters
                                         echo "<!-- SQL: " . $sql . " -->";
                                         echo "<!-- Parameters: today=" . $today . ", day=" . $day . " -->";
-                                        
-                                    } catch(PDOException $e) {
+
+                                    } catch (PDOException $e) {
                                         echo "<tr><td colspan='4' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
-                                    }catch (PDOException $e) {
+                                    } catch (PDOException $e) {
                                         echo "<tr><td colspan='4' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
                                     }
                                     ?>

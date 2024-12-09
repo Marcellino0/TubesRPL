@@ -14,23 +14,27 @@ $registrationDay = $_GET['registration_day'] ?? 'today';
 
 try {
     $query = "
-        SELECT 
-            jd.*,
-            (SELECT COUNT(*) 
-             FROM Pendaftaran 
-             WHERE ID_Jadwal = jd.ID_Jadwal 
-             AND DATE(Waktu_Daftar) = CURDATE()) as used_quota_today,
-            (SELECT COUNT(*) 
-             FROM Pendaftaran 
-             WHERE ID_Jadwal = jd.ID_Jadwal 
-             AND DATE(Waktu_Daftar) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)) as used_quota_tomorrow
-        FROM Jadwal_Dokter jd
-        WHERE jd.ID_Dokter = ? 
-        AND jd.Status = 'Aktif'
-        ORDER BY 
-            FIELD(jd.Hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'),
-            jd.Jam_Mulai
-    ";
+    SELECT 
+        jd.*,
+        (SELECT COUNT(*) FROM Pendaftaran 
+         WHERE ID_Jadwal = jd.ID_Jadwal 
+         AND DATE(Waktu_Daftar) = CURDATE()
+         AND Verifikasi = 'Terverifikasi') as used_quota_total,
+        (SELECT COUNT(*) FROM Pendaftaran p
+         JOIN Pasien ps ON p.ID_Pasien = ps.ID_Pasien 
+         WHERE p.ID_Jadwal = jd.ID_Jadwal 
+         AND DATE(p.Waktu_Daftar) = CURDATE()
+         AND ps.Registration_Type = 'offline'
+         AND p.Verifikasi = 'Terverifikasi') as used_quota_offline_today,
+        (SELECT COUNT(*) FROM Pendaftaran p
+         JOIN Pasien ps ON p.ID_Pasien = ps.ID_Pasien 
+         WHERE p.ID_Jadwal = jd.ID_Jadwal 
+         AND DATE(p.Waktu_Daftar) = CURDATE()
+         AND ps.Registration_Type = 'online'
+         AND p.Verifikasi = 'Terverifikasi') as used_quota_online_today
+    FROM Jadwal_Dokter jd 
+    WHERE jd.ID_Dokter = ?
+    AND jd.Status = 'Aktif'";
     
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $doctorId);
