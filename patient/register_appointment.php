@@ -7,14 +7,6 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: login.php");
     exit();
 }
-$patientName = "Pasien";
-if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
-    $stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result()->fetch_assoc();
-    $patientName = $result['Nama'] ?? "Pasien";
-}
 
 $patientId = $_SESSION['user_id'];
 $message = '';
@@ -133,6 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 
@@ -141,8 +134,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pendaftaran Dokter - Poliklinik X</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
 </head>
 
 <body class="bg-gray-100">

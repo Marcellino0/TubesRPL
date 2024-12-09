@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 04, 2024 at 10:00 AM
+-- Generation Time: Dec 09, 2024 at 05:13 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -83,7 +83,7 @@ INSERT INTO `dokter` (`ID_Dokter`, `Username`, `Password`, `Nama`, `Spesialis`, 
 (4, 'dr.ken', '1234', 'dr. Ken', 'THT', ''),
 (5, 'dr.wilson', '1234', 'dr. Wilson', 'Umum', ''),
 (6, 'dr.ayu', '1234', 'dr. Ayu', 'Umum', ''),
-(10, 'dr.abc', '$2y$10$ob248QyJwHSRvgYWbx.6WeoHWKS3.5cAKWFPGqb9oTYzjUVWs8st6', 'dr.abc', 'Umum', 'Senin-Jumat');
+(10, 'dr.abc', '1234', 'dr.abc', 'Umum', 'Senin-Jumat');
 
 -- --------------------------------------------------------
 
@@ -106,16 +106,13 @@ CREATE TABLE `dokumen_medis` (
 --
 
 INSERT INTO `dokumen_medis` (`ID_Dokumen`, `ID_Pasien`, `Nama_File`, `Jenis_Dokumen`, `Keterangan`, `Tanggal_Upload`, `Path_File`) VALUES
-(13, 1, 'doc_674bbead66668.pdf', 'Resep', '123', '2024-12-01 08:41:01', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674bbead66668.pdf'),
-(14, 1, 'doc_674bc83d195df.pdf', 'Rujukan', '.', '2024-12-01 09:21:49', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674bc83d195df.pdf'),
-(15, 1, 'doc_674bc8867ae44.pdf', 'Resep', '', '2024-12-01 09:23:02', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674bc8867ae44.pdf'),
-(16, 1, 'doc_674bc898def5f.pdf', 'Hasil Lab', '312', '2024-12-01 09:23:20', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674bc898def5f.pdf'),
-(17, 1, 'doc_674bd0d9cfe92.pdf', 'Hasil Lab', '31', '2024-12-01 09:58:33', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674bd0d9cfe92.pdf'),
-(18, 1, 'doc_674bf450d3a3f.pdf', 'Hasil Lab', '.', '2024-12-01 12:29:52', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674bf450d3a3f.pdf'),
-(19, 1, 'doc_674eaaa3b9105.pdf', 'Hasil Lab', '..', '2024-12-03 13:52:19', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674eaaa3b9105.pdf'),
-(20, 1, 'doc_674e8504901cf.pdf', 'Rujukan', '', '2024-12-03 11:11:48', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674e8504901cf.pdf'),
-(21, 6, 'doc_674f3ab69ae0c.pdf', 'Hasil Lab', '', '2024-12-04 00:07:02', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/6/doc_674f3ab69ae0c.pdf'),
-(22, 1, 'doc_674fd4d9a5f2e.pdf', 'Hasil Lab', '-', '2024-12-04 11:04:41', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/1/doc_674fd4d9a5f2e.pdf');
+(23, 48, 'doc_6753268de3612.pdf', 'Hasil Lab', '', '2024-12-06 23:30:05', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/48/doc_6753268de3612.pdf'),
+(24, 48, 'doc_6754786dad5a1.pdf', 'Hasil Lab', '', '2024-12-07 23:31:41', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/48/doc_6754786dad5a1.pdf'),
+(25, 49, 'doc_6754797cca948.pdf', 'Hasil Lab', '', '2024-12-07 23:36:12', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/49/doc_6754797cca948.pdf'),
+(26, 48, 'doc_67571e33a0d52.pdf', 'Hasil Lab', '', '2024-12-09 23:43:31', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/48/doc_67571e33a0d52.pdf'),
+(27, 48, 'doc_67571e7e74526.pdf', 'Hasil Lab', '', '2024-12-09 23:44:46', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/48/doc_67571e7e74526.pdf'),
+(28, 48, 'doc_67604577079b2.pdf', 'Hasil Lab', '', '2024-12-16 22:21:27', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/48/doc_67604577079b2.pdf'),
+(29, 53, 'doc_676adc679fb5f.pdf', 'Hasil Lab', '', '2024-12-24 23:08:07', 'C:\\xampp\\htdocs\\TubesRPL\\nurse/uploads/53/doc_676adc679fb5f.pdf');
 
 -- --------------------------------------------------------
 
@@ -141,19 +138,19 @@ CREATE TABLE `jadwal_dokter` (
 --
 
 INSERT INTO `jadwal_dokter` (`ID_Jadwal`, `ID_Dokter`, `Jam_Mulai`, `Jam_Selesai`, `Kuota_Online`, `Kuota_Offline`, `Max_Pasien`, `Hari`, `Status`, `Keterangan`) VALUES
-(1, 1, '08:00:00', '12:00:00', 19, 8, 30, 'Senin', 'Aktif', ''),
-(2, 1, '08:00:00', '12:00:00', 18, 20, 20, 'Rabu', 'Aktif', ''),
+(1, 1, '08:00:00', '12:00:00', 0, 6, 30, 'Senin', 'Aktif', ''),
+(2, 1, '08:00:00', '12:00:00', 0, 17, 20, 'Selasa', 'Aktif', ''),
 (3, 1, '13:00:00', '17:00:00', 19, 20, 20, 'Jumat', 'Aktif', ''),
-(4, 2, '08:00:00', '14:00:00', 13, 15, 15, 'Selasa', 'Aktif', ''),
-(5, 2, '08:00:00', '14:00:00', 12, 15, 15, 'Kamis', 'Aktif', ''),
-(6, 3, '13:00:00', '17:00:00', 21, 25, 25, 'Selasa', 'Aktif', ''),
-(7, 3, '13:00:00', '17:00:00', 24, 17, 50, 'Jumat', 'Aktif', ''),
-(8, 4, '08:00:00', '12:00:00', 20, 20, 20, 'Senin', 'Aktif', ''),
+(4, 2, '08:00:00', '14:00:00', 11, 15, 15, 'Selasa', 'Aktif', ''),
+(5, 2, '08:00:00', '14:00:00', 12, 14, 15, 'Kamis', 'Aktif', ''),
+(6, 3, '13:00:00', '17:00:00', 20, 24, 25, 'Selasa', 'Aktif', ''),
+(7, 3, '13:00:00', '17:00:00', 25, 21, 50, 'Jumat', 'Aktif', ''),
+(8, 4, '08:00:00', '12:00:00', 15, 20, 20, 'Senin', 'Aktif', ''),
 (9, 6, '09:00:00', '11:00:00', 24, 15, 40, 'Jumat', 'Aktif', ''),
-(12, 6, '13:00:00', '14:00:00', 38, 40, 40, 'Rabu', 'Aktif', ''),
+(12, 6, '13:00:00', '14:00:00', 38, 39, 40, 'Rabu', 'Aktif', ''),
 (13, 10, '19:00:00', '21:41:00', 30, 30, 30, 'Kamis', 'Aktif', ''),
-(14, 6, '12:00:00', '19:00:00', 20, 15, 20, 'Sabtu', 'Aktif', ''),
-(16, 10, '12:22:00', '15:22:00', 10, 10, 20, 'Senin', 'Aktif', ''),
+(14, 6, '12:00:00', '19:00:00', 19, 14, 20, 'Sabtu', 'Aktif', ''),
+(16, 10, '12:22:00', '15:22:00', 9, 7, 20, 'Senin', 'Aktif', ''),
 (17, 4, '12:25:00', '13:00:00', 20, 15, 40, 'Jumat', 'Aktif', '');
 
 -- --------------------------------------------------------
@@ -200,38 +197,22 @@ CREATE TABLE `pasien` (
   `Nomor_Rekam_Medis` varchar(20) NOT NULL,
   `Umur` int(11) DEFAULT NULL,
   `reset_token` varchar(64) DEFAULT NULL,
-  `reset_token_expiry` datetime DEFAULT NULL
+  `reset_token_expiry` datetime DEFAULT NULL,
+  `Registration_Type` enum('online','offline') NOT NULL DEFAULT 'offline',
+  `Code` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `pasien`
 --
 
-INSERT INTO `pasien` (`ID_Pasien`, `Nama`, `NIK`, `Tanggal_Lahir`, `Jenis_Kelamin`, `Username`, `Password`, `Email`, `No_HP`, `Alamat`, `Nomor_Rekam_Medis`, `Umur`, `reset_token`, `reset_token_expiry`) VALUES
-(1, 'Marcell', '1234561918941892', '2003-12-05', 'Laki-laki', 'Marcell', '$2y$10$Fd1u3NFwYxYUrYZ/yV5uceMZSH5BQLvWLqknqKFwdDhcRUuYWhrAO', 'asdas@gmail.com', '12312321', '321123312', 'RM-2024-00001', 20, 'bf59f86de4a8c172b8b5bf4221bad72d9a21f209c715e59c7782be88bfaf4f55', '2024-12-01 18:16:58'),
-(2, 'sava', '1234561918941896', '2003-12-10', 'Laki-laki', NULL, '$2y$10$91Ic5mU0.GUBJQI4InuAWOEx2/FgisbRFDeUomTea9tBYorN.kOtC', 'asdas@gmail.com', '213231123312123', '321231123', 'RM-2024-00002', 20, 'bf59f86de4a8c172b8b5bf4221bad72d9a21f209c715e59c7782be88bfaf4f55', '2024-12-01 18:16:58'),
-(3, 'Army', '1234561918941893', '2003-12-12', 'Perempuan', 'Army', '$2y$10$dqaIe0BEFbG7boljKRYFB.PrNGW2BK3rrYjvgGmz2eRBLuNz/vh7y', 'asdas@gmail.com', '123', 'kopo', 'RM-2024-00003', 20, 'bf59f86de4a8c172b8b5bf4221bad72d9a21f209c715e59c7782be88bfaf4f55', '2024-12-01 18:16:58'),
-(5, 'Anto', '1234561913212521', '2003-12-10', 'Laki-laki', 'user', '$2y$10$Smx3t4aP6N72oOy2pB/GOOSbYWco1Fl6iHe0lmzPK09AlR3xxk9na', 'asdas@gmail.com', '213231123312123', 'Kopo', 'RM-2024-00005', 20, 'bf59f86de4a8c172b8b5bf4221bad72d9a21f209c715e59c7782be88bfaf4f55', '2024-12-01 18:16:58'),
-(6, 'Anto', '1234561918941545', '2024-11-29', 'Laki-laki', 'user1', '$2y$10$5YJJBrqL7exTsRonF6xRe.1VNfNPLWCZT8Jnyuj42gJU4t7idoCKC', 'asdas@gmail.com', '213231123312123', 'koop', 'RM-2024-00006', 0, 'bf59f86de4a8c172b8b5bf4221bad72d9a21f209c715e59c7782be88bfaf4f55', '2024-12-01 18:16:58'),
-(9, 'Antoo', '123456191894151', '2024-12-03', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0003', 0, NULL, NULL),
-(10, 'Perawat', '1234561918551892', '2024-12-03', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0004', 0, NULL, NULL),
-(11, 'Antooo', '1234231312123231', '2024-12-09', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0005', 0, NULL, NULL),
-(12, 'dr. Anton', '1231231231231231', '2024-06-11', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0006', 0, NULL, NULL),
-(13, 'Kikooo', '1010101010101010', '2024-12-09', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0007', 0, NULL, NULL),
-(14, 'Andrew', '12123123123123', '2024-12-09', 'Perempuan', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0008', 0, NULL, NULL),
-(15, 'Perawat', '1234561918941892', '2024-12-04', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0009', 0, NULL, NULL),
-(16, 'Perawat', '123123123123123', '2024-09-16', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RM-2024-0010', 0, NULL, NULL),
-(20, 'Suti', '0396816043106917', '2003-10-15', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00001', NULL, NULL, NULL),
-(21, 'TONO', '0396816043106916', '2024-12-10', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00002', NULL, NULL, NULL),
-(22, 'KENZHII', '1234561918945155', '2024-12-11', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00003', NULL, NULL, NULL),
-(23, 'Aaron', '3132213213131313', '2024-12-09', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00004', NULL, NULL, NULL),
-(24, 'dr. Anton', '1222222222222222', '2024-12-09', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00005', NULL, NULL, NULL),
-(25, 'Kiko', '1111111111111111', '2024-12-03', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00006', NULL, NULL, NULL),
-(26, 'Kiko', '3333333333333333', '2024-12-04', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00007', NULL, NULL, NULL),
-(27, 'hokik', '4444444444444444', '2024-12-04', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00008', NULL, NULL, NULL),
-(28, 'bcd', '1234561914444444', '2024-12-04', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00009', NULL, NULL, NULL),
-(29, 'Antooo', '1234565555555555', '2024-12-04', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00010', NULL, NULL, NULL),
-(30, 'SAVA', '1341414141414142', '2024-12-16', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00011', NULL, NULL, NULL);
+INSERT INTO `pasien` (`ID_Pasien`, `Nama`, `NIK`, `Tanggal_Lahir`, `Jenis_Kelamin`, `Username`, `Password`, `Email`, `No_HP`, `Alamat`, `Nomor_Rekam_Medis`, `Umur`, `reset_token`, `reset_token_expiry`, `Registration_Type`, `Code`) VALUES
+(48, 'Kenzhi', '0396816043106916', '2024-12-06', 'Laki-laki', 'user', '$2y$10$HU731YVzyfTnAcE4.Gdax.3lNpxiMUTKxzODhbvLmFRWlKtt7Uqm2', 'kenzhi@gmail.com', '12345678', 'Kopo', 'RM-2024-00001', 0, NULL, NULL, 'offline', NULL),
+(49, 'Kiko', '0396816043106915', '2024-12-07', 'Laki-laki', NULL, NULL, NULL, NULL, NULL, 'RMOffline-2024-00001', 0, NULL, NULL, 'offline', NULL),
+(50, 'Kenzhu', '4567854645489454', '2003-07-26', 'Laki-laki', 'Kenzhu', '$2y$10$CYPNk9aYZDhxLDIB.kbCAOPXxZ8kAfgvZGZCjJp6iklg.fjcvzfAG', 'kenzhu@gmail.com', '083811888826', 'Jl.Mekar Lestari no.11', 'RM-2024-00002', 21, NULL, NULL, 'offline', NULL),
+(51, 'Maulana', '4775675688768678', '2024-12-01', 'Laki-laki', 'maulana', '$2y$10$XWLldXHXUCpW9Qyesu2Hn.V6.pkq3dhVjA2POBJHMH13QvrLC1qHO', 'maulana@gmail.com', '08142343245', 'Sukajadi no 13', 'RM-2024-00003', 0, NULL, NULL, 'offline', NULL),
+(52, 'Jonathan', '2142353465467564', '2024-12-01', 'Laki-laki', 'Jonathan', '$2y$10$wF.iO2i87lAkQmn7XB1I..cBcaCnpge6U0tpVijWi6/6HZHJ5bWUK', 'Jonathan@gmail.com', '081346458347', 'TKI 2', 'RM-2024-00004', 0, NULL, NULL, 'offline', NULL),
+(53, 'Kenzhu', '1231223125165166', '2024-12-09', 'Laki-laki', 'user2', '$2y$10$iMAIOB3all28cwE2w3sl8O/TluWjA/CVbpt42XfpfmLpDyVCPH7fm', 'mlino938@gmail.com', '12313131231', 'Kopo', 'RM-2024-00005', 0, NULL, NULL, 'offline', '327186');
 
 -- --------------------------------------------------------
 
@@ -247,6 +228,17 @@ CREATE TABLE `pembayaran` (
   `Metode` varchar(50) NOT NULL,
   `Status` varchar(20) DEFAULT 'Belum Lunas'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `pembayaran`
+--
+
+INSERT INTO `pembayaran` (`ID_Pembayaran`, `ID_Pendaftaran`, `Tanggal`, `Jumlah`, `Metode`, `Status`) VALUES
+(6, 137, '2024-12-06 21:26:21', 5444.00, 'QRIS', 'Lunas'),
+(7, NULL, '2024-12-06 21:28:04', 35000.00, 'QRIS', 'Lunas'),
+(8, 139, '2024-12-07 23:34:23', 100000.00, 'QRIS', 'Belum Lunas'),
+(9, 142, '2024-12-06 23:45:54', 55555.00, 'Bank Transfer', 'Lunas'),
+(10, 142, '2024-12-06 23:46:01', 66666.00, 'QRIS', 'Lunas');
 
 -- --------------------------------------------------------
 
@@ -267,16 +259,14 @@ CREATE TABLE `pemeriksaan` (
 --
 
 INSERT INTO `pemeriksaan` (`ID_Pemeriksaan`, `ID_Pendaftaran`, `ID_Dokter`, `Waktu_Periksa`, `Diagnosa`) VALUES
-(55, 89, 3, '2024-12-03 11:15:20', 'ABCD'),
-(56, 90, 2, '2024-12-03 11:15:38', 'CDE'),
-(57, 103, 1, '2024-12-04 06:35:18', 'Pusing'),
-(58, 105, 3, '2024-12-04 06:43:50', 'abc'),
-(59, 106, 3, '2024-12-06 06:46:58', 'ABC'),
-(60, 104, 6, '2024-12-06 06:56:37', 'ABC'),
-(61, 107, 1, '2024-12-04 11:06:02', 'Paru paru'),
-(62, 108, 6, '2024-12-04 11:06:32', 'adsasaddsa'),
-(63, 109, 3, '2024-12-06 11:11:44', 'ABUABBBUBUUUUUUUUuu'),
-(64, 111, 3, '2024-12-13 11:19:06', 'SAKIT PERUT');
+(65, 137, 3, '2024-12-06 18:15:32', 'aaa'),
+(66, 138, 3, '2024-12-06 23:30:32', 'bbb'),
+(67, 139, 6, '2024-12-07 23:33:47', 'sdasda'),
+(68, 140, 6, '2024-12-07 23:36:26', 'abc'),
+(69, 141, 4, '2024-12-09 23:44:00', 'abc'),
+(70, 142, 1, '2024-12-09 23:45:20', 'abc'),
+(71, 144, 1, '2024-12-09 20:02:03', '123'),
+(72, 155, 4, '2024-12-16 22:21:59', 'abc');
 
 -- --------------------------------------------------------
 
@@ -291,40 +281,39 @@ CREATE TABLE `pendaftaran` (
   `Waktu_Daftar` datetime NOT NULL,
   `No_Antrian` int(11) NOT NULL,
   `Status` varchar(20) DEFAULT 'Menunggu',
-  `Bukti_Reservasi` varchar(255) DEFAULT NULL
+  `Bukti_Reservasi` varchar(255) DEFAULT NULL,
+  `Verifikasi` enum('Belum Diverifikasi','Terverifikasi','Ditolak') DEFAULT 'Belum Diverifikasi',
+  `Waktu_Verifikasi` datetime DEFAULT NULL,
+  `Catatan_Verifikasi` text DEFAULT NULL,
+  `Tipe_Pendaftaran` enum('online','offline') NOT NULL DEFAULT 'offline'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `pendaftaran`
 --
 
-INSERT INTO `pendaftaran` (`ID_Pendaftaran`, `ID_Pasien`, `ID_Jadwal`, `Waktu_Daftar`, `No_Antrian`, `Status`, `Bukti_Reservasi`) VALUES
-(89, 1, 6, '2024-12-03 00:00:00', 1, 'Selesai', NULL),
-(90, 1, 4, '2024-12-03 00:00:00', 1, 'Selesai', NULL),
-(103, 6, 2, '2024-12-04 00:00:00', 1, 'Selesai', NULL),
-(104, 6, 9, '2024-12-06 00:00:00', 1, 'Selesai', NULL),
-(105, 20, 7, '2024-12-04 00:42:15', 1, 'Selesai', 'REG20241204001'),
-(106, 21, 7, '2024-12-06 00:46:28', 1, 'Selesai', 'REG20241204001'),
-(107, 1, 2, '2024-12-04 00:00:00', 2, 'Selesai', NULL),
-(108, 1, 12, '2024-12-04 00:00:00', 1, 'Selesai', NULL),
-(109, 21, 7, '2024-12-06 05:09:44', 2, 'Selesai', 'REG20241204002'),
-(110, 1, 5, '2024-12-12 00:00:00', 1, 'Menunggu', NULL),
-(111, 22, 7, '2024-12-13 05:15:40', 1, 'Selesai', 'REG20241211001'),
-(112, 23, 1, '2024-12-09 06:10:54', 1, 'Menunggu', 'REG20241204001'),
-(113, 23, 1, '2024-12-09 06:10:54', 2, 'Menunggu', 'REG20241204002'),
-(114, 24, 1, '2024-12-09 06:11:59', 3, 'Menunggu', 'REG20241204003'),
-(115, 24, 1, '2024-12-09 06:11:59', 4, 'Menunggu', 'REG20241204004'),
-(116, 25, 1, '2024-12-04 06:15:18', 1, 'Menunggu', 'REG20241204001'),
-(117, 26, 1, '2024-12-08 06:41:48', 1, 'Menunggu', 'REG20241204001'),
-(118, 26, 1, '2024-12-08 06:41:48', 2, 'Menunggu', 'REG20241204002'),
-(119, 27, 1, '2024-12-16 06:52:43', 1, 'Menunggu', 'REG20241204001'),
-(120, 27, 1, '2024-12-16 06:52:43', 2, 'Menunggu', 'REG20241204002'),
-(121, 28, 1, '2024-12-09 07:02:08', 5, 'Menunggu', 'REG20241204005'),
-(122, 28, 1, '2024-12-09 07:02:08', 6, 'Menunggu', 'REG20241204006'),
-(123, 29, 1, '2024-12-09 07:17:12', 7, 'Menunggu', 'REG20241204007'),
-(124, 1, 6, '2024-12-24 00:00:00', 1, 'Menunggu', NULL),
-(125, 30, 1, '2024-12-30 07:24:36', 1, 'Menunggu', 'REG20241204001'),
-(126, 1, 5, '2024-12-05 00:00:00', 1, 'Menunggu', NULL);
+INSERT INTO `pendaftaran` (`ID_Pendaftaran`, `ID_Pasien`, `ID_Jadwal`, `Waktu_Daftar`, `No_Antrian`, `Status`, `Bukti_Reservasi`, `Verifikasi`, `Waktu_Verifikasi`, `Catatan_Verifikasi`, `Tipe_Pendaftaran`) VALUES
+(137, 48, 7, '2024-12-06 00:00:00', 1, 'Selesai', NULL, 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(138, 48, 7, '2024-12-06 16:57:55', 2, 'Selesai', 'REG20241206002', 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(139, 48, 14, '2024-12-07 00:00:00', 1, 'Selesai', NULL, 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(140, 49, 14, '2024-12-07 23:35:04', 2, 'Selesai', 'REG20241207002', 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(141, 48, 8, '2024-12-09 00:00:00', 1, 'Selesai', NULL, 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(142, 48, 1, '2024-12-09 00:00:00', 1, 'Selesai', NULL, 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(144, 50, 1, '2024-12-09 00:00:00', 1, 'Selesai', NULL, 'Terverifikasi', '2024-12-09 19:56:52', '', 'offline'),
+(145, 50, 16, '2024-12-09 00:00:00', 1, 'Menunggu', NULL, 'Terverifikasi', '2024-12-09 20:16:51', '', 'offline'),
+(146, 48, 16, '2024-12-09 00:00:00', 2, 'Menunggu', NULL, 'Terverifikasi', '2024-12-09 20:26:36', '', 'offline'),
+(147, 50, 8, '2024-12-09 00:00:00', 0, 'Menunggu', NULL, 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(148, 51, 8, '2024-12-09 00:00:00', 1, 'Menunggu', NULL, 'Terverifikasi', '2024-12-09 20:45:01', '', 'offline'),
+(149, 51, 16, '2024-12-09 20:49:44', 3, 'Menunggu', 'REG20241209003', 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(154, 52, 16, '2024-12-09 21:37:47', 3, 'Menunggu', 'REG20241209003', 'Terverifikasi', NULL, NULL, 'offline'),
+(155, 48, 8, '2024-12-16 00:00:00', 1, 'Selesai', NULL, 'Terverifikasi', '2024-12-16 22:20:29', '', 'online'),
+(156, 49, 16, '2024-12-16 22:24:22', 1, 'Menunggu', 'REG20241216001', 'Terverifikasi', NULL, NULL, 'offline'),
+(157, 53, 8, '2024-12-09 00:00:00', 2, 'Menunggu', NULL, 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(158, 53, 4, '2024-12-10 00:00:00', 1, 'Menunggu', NULL, 'Belum Diverifikasi', NULL, NULL, 'offline'),
+(159, 53, 12, '2024-12-11 00:00:00', 0, 'Menunggu', NULL, 'Belum Diverifikasi', NULL, NULL, 'online'),
+(160, 53, 4, '2024-12-24 00:00:00', 1, 'Diperiksa', NULL, 'Terverifikasi', '2024-12-24 23:05:33', '', 'online'),
+(161, 53, 6, '2024-12-24 00:00:00', 1, 'Diperiksa', NULL, 'Terverifikasi', '2024-12-24 23:07:24', '', 'online'),
+(162, 53, 2, '2024-12-24 00:00:00', 1, 'Diperiksa', NULL, 'Terverifikasi', '2024-12-24 23:11:23', '', 'online');
 
 -- --------------------------------------------------------
 
@@ -344,7 +333,8 @@ CREATE TABLE `perawat` (
 --
 
 INSERT INTO `perawat` (`ID_Perawat`, `Username`, `Password`, `Nama`) VALUES
-(3, 'perawat', '1234', 'Perawat');
+(3, 'perawat', '1234', 'Perawat'),
+(4, 'perawat1', '1234', 'Perawat2');
 
 -- --------------------------------------------------------
 
@@ -368,9 +358,12 @@ CREATE TABLE `rekam_medis` (
 --
 
 INSERT INTO `rekam_medis` (`ID_Rekam`, `ID_Pasien`, `Tekanan_Darah`, `Tinggi_Badan`, `Berat_Badan`, `Suhu`, `Riwayat_Penyakit`, `Tanggal`) VALUES
-(29, 1, '130/50', 200.00, 200.00, 50.0, '       PARU PARU                 ', '2024-12-03'),
-(30, 6, '125/23', 174.00, 54.00, 34.0, '                                Pusing                            ', '2024-12-04'),
-(31, 1, '200/10', 173.00, 75.00, 39.0, 'Sakit Badan', '2024-12-04');
+(32, 48, '130/50', 200.00, 45.00, 34.0, 'Sakit', '2024-12-06'),
+(33, 48, '200/10', 200.00, 50.00, 50.0, 'sss', '2024-12-07'),
+(34, 49, '120/90', 200.00, 200.00, 60.0, 'abc', '2024-12-07'),
+(35, 48, '130/60', 200.00, 50.00, 40.0, '                                abc                            ', '2024-12-09'),
+(36, 48, '120/80', 173.00, 45.00, 50.0, 'THT', '2024-12-16'),
+(37, 53, '140/90', 173.00, 50.00, 40.0, ' abc                                                       ..                                                        ', '2024-12-24');
 
 -- --------------------------------------------------------
 
@@ -390,16 +383,14 @@ CREATE TABLE `resep` (
 --
 
 INSERT INTO `resep` (`ID_Resep`, `ID_Pemeriksaan`, `Resep_Obat`, `Tanggal`) VALUES
-(49, 55, 'ABCD', '2024-12-03'),
-(50, 56, 'CDE', '2024-12-03'),
-(51, 57, 'Pusing', '2024-12-04'),
-(52, 58, 'abc', '2024-12-04'),
-(53, 59, 'ABC', '2024-12-06'),
-(54, 60, 'ABC', '2024-12-06'),
-(55, 61, 'abc\r\n', '2024-12-04'),
-(56, 62, 'dasdasads', '2024-12-04'),
-(57, 63, 'sadaddaaaaaaaaaaaaaaaaaaaaaaaaa', '2024-12-06'),
-(58, 64, 'ABC\r\n', '2024-12-13');
+(59, 65, 'aaaa', '2024-12-06'),
+(60, 66, 'bbb', '2024-12-06'),
+(61, 67, 'dasasd', '2024-12-07'),
+(62, 68, 'abc', '2024-12-07'),
+(63, 69, 'abc', '2024-12-09'),
+(64, 70, 'abc', '2024-12-09'),
+(65, 71, '123', '2024-12-09'),
+(66, 72, 'abc', '2024-12-16');
 
 --
 -- Indexes for dumped tables
@@ -455,7 +446,10 @@ ALTER TABLE `pasien`
   ADD PRIMARY KEY (`ID_Pasien`),
   ADD UNIQUE KEY `Nomor_Rekam_Medis` (`Nomor_Rekam_Medis`),
   ADD UNIQUE KEY `Username` (`Username`),
-  ADD KEY `IX_Pasien_Username` (`Username`);
+  ADD UNIQUE KEY `unique_nik` (`NIK`),
+  ADD KEY `IX_Pasien_Username` (`Username`),
+  ADD KEY `idx_registration_type` (`Registration_Type`),
+  ADD KEY `idx_nomor_rm` (`Nomor_Rekam_Medis`);
 
 --
 -- Indexes for table `pembayaran`
@@ -529,7 +523,7 @@ ALTER TABLE `dokter`
 -- AUTO_INCREMENT for table `dokumen_medis`
 --
 ALTER TABLE `dokumen_medis`
-  MODIFY `ID_Dokumen` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `ID_Dokumen` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `jadwal_dokter`
@@ -547,43 +541,43 @@ ALTER TABLE `metode_pembayaran`
 -- AUTO_INCREMENT for table `pasien`
 --
 ALTER TABLE `pasien`
-  MODIFY `ID_Pasien` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `ID_Pasien` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT for table `pembayaran`
 --
 ALTER TABLE `pembayaran`
-  MODIFY `ID_Pembayaran` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `ID_Pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `pemeriksaan`
 --
 ALTER TABLE `pemeriksaan`
-  MODIFY `ID_Pemeriksaan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `ID_Pemeriksaan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 
 --
 -- AUTO_INCREMENT for table `pendaftaran`
 --
 ALTER TABLE `pendaftaran`
-  MODIFY `ID_Pendaftaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=127;
+  MODIFY `ID_Pendaftaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=163;
 
 --
 -- AUTO_INCREMENT for table `perawat`
 --
 ALTER TABLE `perawat`
-  MODIFY `ID_Perawat` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `ID_Perawat` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `rekam_medis`
 --
 ALTER TABLE `rekam_medis`
-  MODIFY `ID_Rekam` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `ID_Rekam` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
 
 --
 -- AUTO_INCREMENT for table `resep`
 --
 ALTER TABLE `resep`
-  MODIFY `ID_Resep` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+  MODIFY `ID_Resep` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
 -- Constraints for dumped tables
