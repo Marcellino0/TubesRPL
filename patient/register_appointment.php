@@ -7,6 +7,14 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: login.php");
     exit();
 }
+$patientName = "Pasien";
+if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
+    $stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $patientName = $result['Nama'] ?? "Pasien";
+}
 
 $patientId = $_SESSION['user_id'];
 $message = '';
@@ -153,7 +161,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -161,70 +168,117 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pendaftaran Dokter - Poliklinik X</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
 </head>
 <body class="bg-gray-100">
-    <div class="min-h-screen p-6">
-        <div class="max-w-3xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h1 class="text-2xl font-bold mb-6">Pendaftaran Dokter</h1>
-                
-                <?php if ($message): ?>
-                    <div class="mb-4 p-4 rounded <?php echo $messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'; ?>">
-                        <?php echo $message; ?>
-                    </div>
-                <?php endif; ?>
-
-                <form method="POST" class="space-y-6" id="registrationForm">
-                    <!-- Specialization Selection -->
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-blue-800 text-white fixed h-full">
+            <div class="p-4">
+                <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
+                <nav class="space-y-2">
+                    <a href="patient_dashboard.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="jadwal_dokter.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Jadwal Dokter</span>
+                    </a>
+                    <a href="register_appointment.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Buat Janji</span>
+                    </a>
+                    <a href="medical_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-file-medical"></i>
+                        <span>Hasil Pemeriksaan</span>
+                    </a>
+                    <a href="payment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-receipt"></i>
+                        <span>Pembayaran</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="absolute bottom-0 w-64 p-4 bg-blue-900">
+                <div class="flex items-center space-x-3 mb-4">
+                    <i class="fas fa-user-circle text-2xl"></i>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Pilih Spesialis</label>
-                        <select id="specialization" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="">Pilih Spesialis</option>
-                            <?php foreach ($specializations as $spec): ?>
-                                <option value="<?php echo htmlspecialchars($spec['Spesialis']); ?>">
-                                    <?php echo htmlspecialchars($spec['Spesialis']); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <p class="font-medium"><?php echo htmlspecialchars($patientName); ?></p>
+                        <p class="text-sm text-gray-300">Pasien</p>
                     </div>
+                </div>
+                <a href="logout.php" class="flex items-center space-x-3 p-2 rounded hover:bg-blue-800 text-red-300">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
 
-                    <!-- Doctor Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Pilih Dokter</label>
-                        <select name="doctor" id="doctor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            <option value="">Pilih Dokter Terlebih Dahulu</option>
-                        </select>
-                    </div>
+        <!-- Main Content -->
+        <div class="flex-1 ml-64 bg-gray-100 py-8">
+            <div class="max-w-3xl mx-auto px-4">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h1 class="text-2xl font-bold mb-6">Pendaftaran Dokter</h1>
 
-                    <!-- Date Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Pilih Tanggal Pendaftaran</label>
-                        <input 
-                            type="date" 
-                            name="registration_date" 
-                            id="registration_date" 
-                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
-                            required
-                        >
-                    </div>
+                    <?php if ($message): ?>
+                        <div class="mb-4 p-4 rounded <?php echo $messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'; ?>">
+                            <?php echo $message; ?>
+                        </div>
+                    <?php endif; ?>
 
-                    <!-- Schedule Selection -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Pilih Jadwal</label>
-                        <select name="schedule" id="schedule" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            <option value="">Pilih Jadwal</option>
-                        </select>
-                    </div>
+                    <form method="POST" class="space-y-6" id="registrationForm">
+                        <!-- Specialization Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Spesialis</label>
+                            <select id="specialization" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">Pilih Spesialis</option>
+                                <?php foreach ($specializations as $spec): ?>
+                                    <option value="<?php echo htmlspecialchars($spec['Spesialis']); ?>">
+                                        <?php echo htmlspecialchars($spec['Spesialis']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
 
-                    <div class="flex items-center justify-between space-x-4">
-                        <a href="patient_dashboard.php" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Kembali
-                        </a>
-                        <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Daftar
-                        </a>
-                    </div>
-                </form>
+                        <!-- Doctor Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Dokter</label>
+                            <select name="doctor" id="doctor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                <option value="">Pilih Dokter Terlebih Dahulu</option>
+                            </select>
+                        </div>
+
+                        <!-- Date Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Tanggal Pendaftaran</label>
+                            <input 
+                                type="date" 
+                                name="registration_date" 
+                                id="registration_date" 
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
+                                required
+                            >
+                        </div>
+
+                        <!-- Schedule Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Jadwal</label>
+                            <select name="schedule" id="schedule" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                <option value="">Pilih Jadwal</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center justify-between space-x-4">
+                            <a href="patient_dashboard.php" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Kembali
+                            </a>
+                            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Daftar
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
