@@ -8,16 +8,15 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     exit();
 }
 
-// Handle form submission
+// Inside the form submission handler
 if (isset($_POST['register_offline'])) {
     try {
-        // Validasi input
+        // Existing input validation...
         if (empty($_POST['nomor_rm']) || empty($_POST['id_jadwal'])) {
             throw new Exception("Semua field harus diisi");
         }
-
-        // Get patient ID from rekam medis number
-        $stmt = $conn->prepare("SELECT ID_Pasien FROM Pasien WHERE Nomor_Rekam_Medis = ?");
+        // Get patient registration type
+        $stmt = $conn->prepare("SELECT ID_Pasien, Registration_Type FROM Pasien WHERE Nomor_Rekam_Medis = ?");
         $stmt->bind_param("s", $_POST['nomor_rm']);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -27,62 +26,69 @@ if (isset($_POST['register_offline'])) {
             throw new Exception("Nomor Rekam Medis tidak ditemukan");
         }
 
-        // Get waktu daftar based on jadwal
-        $stmt = $conn->prepare("
-            SELECT Hari 
-            FROM Jadwal_Dokter 
-            WHERE ID_Jadwal = ?");
-        $stmt->bind_param("i", $_POST['id_jadwal']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $jadwal = $result->fetch_assoc();
-
-        // Get latest antrian number for today and jadwal
+        // Get latest queue number for today and schedule
         $stmt = $conn->prepare("
             SELECT MAX(No_Antrian) as last_number 
             FROM Pendaftaran 
             WHERE ID_Jadwal = ? 
-            AND DATE(Waktu_Daftar) = CURDATE()");
+            AND DATE(Waktu_Daftar) = CURDATE()
+            AND Verifikasi = 'Terverifikasi'");
         $stmt->bind_param("i", $_POST['id_jadwal']);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
         $no_antrian = ($row['last_number'] ?? 0) + 1;
 
-        $stmt = $conn->prepare("
-        UPDATE Jadwal_Dokter 
-        SET Kuota_Offline = Kuota_Offline - 1
-        WHERE ID_Jadwal = ?
-    ");
-    $stmt->bind_param("i", $_POST['id_jadwal']);
-    $stmt->execute();
+        // Update quota based on registration type
+        if ($patient['Registration_Type'] === 'offline') {
+            $quotaField = 'Kuota_Offline';
+            $verificationStatus = 'Terverifikasi';
 
-        // Generate bukti reservasi
+            $stmt = $conn->prepare("
+                UPDATE Jadwal_Dokter 
+                SET Kuota_Offline = Kuota_Offline - 1
+                WHERE ID_Jadwal = ?
+            ");
+        } else {
+            $quotaField = 'Kuota_Online';
+            $verificationStatus = 'Belum Diverifikasi';
+            $no_antrian = 0; // Will be assigned after verification
+
+            $stmt = $conn->prepare("
+                UPDATE Jadwal_Dokter 
+                SET Kuota_Online = Kuota_Online - 1
+                WHERE ID_Jadwal = ?
+            ");
+        }
+        $stmt->bind_param("i", $_POST['id_jadwal']);
+        $stmt->execute();
+
+        // Generate registration proof
         $bukti_reservasi = 'REG' . date('Ymd') . sprintf('%03d', $no_antrian);
 
-        // Insert pendaftaran
+        // Insert registration with appropriate verification status
         $stmt = $conn->prepare("
-            INSERT INTO Pendaftaran 
-            (ID_Pasien, ID_Jadwal, Waktu_Daftar, No_Antrian, Status, Bukti_Reservasi) 
-            VALUES (?, ?, NOW(), ?, 'Menunggu', ?)");
+                INSERT INTO Pendaftaran 
+                (ID_Pasien, ID_Jadwal, Waktu_Daftar, No_Antrian, Status, Bukti_Reservasi, Verifikasi, Tipe_Pendaftaran) 
+                VALUES (?, ?, NOW(), ?, 'Menunggu', ?, 'Terverifikasi', 'offline')");
 
-        if (
-            !$stmt->bind_param(
-                "iiis",
-                $patient['ID_Pasien'],
-                $_POST['id_jadwal'],
-                $no_antrian,
-                $bukti_reservasi
-            )
-        ) {
-            throw new Exception("Binding parameters failed");
-        }
+        $stmt->bind_param(
+            "iiis",
+            $patient['ID_Pasien'],
+            $_POST['id_jadwal'],
+            $no_antrian,
+            $bukti_reservasi
+        );
 
         if (!$stmt->execute()) {
             throw new Exception("Error executing query: " . $stmt->error);
         }
 
-        $_SESSION['success_message'] = "Pendaftaran berhasil dengan nomor antrian: " . $no_antrian . " dan bukti reservasi: " . $bukti_reservasi;
+        $successMsg = $patient['Registration_Type'] === 'offline'
+            ? "Pendaftaran berhasil dengan nomor antrian: " . $no_antrian . " dan bukti reservasi: " . $bukti_reservasi
+            : "Pendaftaran berhasil. Mohon tunggu verifikasi admin untuk mendapatkan nomor antrian.";
+
+        $_SESSION['success_message'] = $successMsg;
         header("Location: pendaftaran_offline.php");
         exit();
 
@@ -92,6 +98,7 @@ if (isset($_POST['register_offline'])) {
         exit();
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -131,6 +138,10 @@ if (isset($_POST['register_offline'])) {
                     <a href="pendaftaran_offline.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
                         <i class="fas fa-notes-medical"></i>
                         <span>Pendaftaran Pemeriksaan</span>
+                    </a>
+                    <a href="pendaftaran_ulang.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-globe"></i>
+                        <span>Pendaftaran Ulang</span>
                     </a>
                     <a href="manage_nurses.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
                         <i class="fas fa-user-nurse"></i>
@@ -284,24 +295,24 @@ if (isset($_POST['register_offline'])) {
 
     if (!doctorId) return;
 
-    // Fetch schedules
-    fetch(`get_schedule.php?doctor_id=${doctorId}&registration_day=today`)
-        .then(response => response.json())
-        .then(schedules => {
-            schedules.forEach(schedule => {
-                // Hitung sisa kuota offline
-                const availableQuota = schedule.Kuota_Offline - schedule.used_quota_offline_today;
+            // Fetch schedules
+            fetch(`get_schedule.php?doctor_id=${doctorId}&registration_day=today`)
+                .then(response => response.json())
+                .then(schedules => {
+                    schedules.forEach(schedule => {
+                        // Hitung sisa kuota offline
+                        const availableQuota = schedule.Kuota_Offline - schedule.used_quota_offline_today;
 
-                if (availableQuota > 0 && schedule.Hari === getCurrentDay()) {
-                    const option = document.createElement('option');
-                    option.value = schedule.ID_Jadwal;
-                    option.textContent = `${schedule.Jam_Mulai}-${schedule.Jam_Selesai}`;
-                    jadwalSelect.appendChild(option);
-                }
-            });
-        })
-        .catch(error => console.error('Error:', error));
-});
+                        if (availableQuota > 0 && schedule.Hari === getCurrentDay()) {
+                            const option = document.createElement('option');
+                            option.value = schedule.ID_Jadwal;
+                            option.textContent = `${schedule.Jam_Mulai}-${schedule.Jam_Selesai}`;
+                            jadwalSelect.appendChild(option);
+                        }
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        });
         function getCurrentDay() {
             const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             const date = new Date();
