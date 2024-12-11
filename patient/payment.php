@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <table class="min-w-full bg-white rounded-lg shadow">
                         <thead>
                             <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                                <th class="py-3 px-6 text-left">ID Pembayaran</th>
+                                <!-- <th class="py-3 px-6 text-left">ID Pembayaran</th> -->
                                 <th class="py-3 px-6 text-left">Dokter</th>
                                 <th class="py-3 px-6 text-left">Spesialis</th>
                                 <th class="py-3 px-6 text-left">Tanggal</th>
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <tbody class="text-gray-600 text-sm">
                             <?php foreach ($paymentHistory as $payment): ?>
                                 <tr class="border-b border-gray-200 hover:bg-gray-100">
-                                    <td class="py-4 px-6">#<?php echo $payment['ID_Pembayaran']; ?></td>
+                                    <!-- <td class="py-4 px-6">#<?php echo $payment['ID_Pembayaran']; ?></td> -->
                                     <td class="py-4 px-6"><?php echo htmlspecialchars($payment['nama_dokter']); ?></td>
                                     <td class="py-4 px-6"><?php echo htmlspecialchars($payment['Spesialis']); ?></td>
                                     <td class="py-4 px-6"><?php echo date('d F Y', strtotime($payment['Tanggal'])); ?></td>
