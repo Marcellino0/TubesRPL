@@ -202,124 +202,97 @@ if (isset($_POST['add_patient'])) {
 
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
-            <!-- Header -->
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">Kelola Pasien</h1>
-                <button onclick="openModal('add')"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2 opacity-100 hover:opacity-90 transition-opacity duration-300">
-                    <i class="fas fa-plus mr-2"></i>
-                    <span>Tambah Pasien</span>
-                </button>
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Kelola Pasien</h2>
+            <button onclick="openModal('add')"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2">
+                <i class="fas fa-plus mr-2"></i>
+                <span>Tambah Pasien</span>
+            </button>
+        </div>
 
+        <?php if (isset($_SESSION['success_message'])): ?>
+            <div class="mb-4 p-4 rounded bg-green-100 text-green-700">
+                <?php
+                echo $_SESSION['success_message'];
+                unset($_SESSION['success_message']);
+                ?>
             </div>
+        <?php endif; ?>
 
-            <!-- Success/Error Messages -->
-            <?php if (isset($_SESSION['success_message'])): ?>
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-                    <?php
-                    echo $_SESSION['success_message'];
-                    unset($_SESSION['success_message']);
-                    ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['error_message'])): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    <?php
-                    echo $_SESSION['error_message'];
-                    unset($_SESSION['error_message']);
-                    ?>
-                </div>
-            <?php endif; ?>
-
-            <!-- Patient List -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        NIK
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Nama
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        No. Rekam Medis
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tanggal Lahir
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Jenis Kelamin
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tipe Registrasi
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Aksi
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php
-                                try {
-                                    $stmt = $conn->query("SELECT * FROM Pasien ORDER BY 
-                                                        CASE 
-                                                            WHEN Nomor_Rekam_Medis LIKE 'RM-%' THEN 1 
-                                                            ELSE 2 
-                                                        END,
-                                                        Nomor_Rekam_Medis ASC");
-
-                                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                        $is_online = strpos($row['Nomor_Rekam_Medis'], 'RM-') === 0;
-                                        $registration_type = $is_online ? 'online' : 'offline';
-                                        $badge_class = $is_online ?
-                                            'bg-green-100 text-green-800' :
-                                            'bg-blue-100 text-blue-800';
-
-                                        echo "<tr>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['NIK']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . htmlspecialchars($row['Nama']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-indigo-600'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap'>";
-                                        echo "<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full {$badge_class}'>";
-                                        echo ucfirst($registration_type);
-                                        echo "</span>";
-                                        echo "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3 flex'>";
-                                        echo "<button onclick='openModal(\"edit\", " . json_encode($row) . ")' class='text-blue-600 hover:text-blue-900'>
-                                                <i class='fas fa-edit'></i>
-                                            </button>";
-                                        echo "<form method='POST' action='' class='inline' onsubmit='return confirmDelete()'>
-                                                <input type='hidden' name='nik' value='" . htmlspecialchars($row['NIK']) . "'>
-                                                <button type='submit' name='delete_patient' class='text-red-600 hover:text-red-900'>
-                                                    <i class='fas fa-trash'></i>
-                                                </button>
-                                            </form>";
-                                        echo "</td>";
-                                        echo "</tr>";
-                                    }
-                                } catch (PDOException $e) {
-                                    echo "<tr><td colspan='7' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
-                                }
-                                ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <?php if (isset($_SESSION['error_message'])): ?>
+            <div class="mb-4 p-4 rounded bg-red-100 text-red-700">
+                <?php
+                echo $_SESSION['error_message'];
+                unset($_SESSION['error_message']);
+                ?>
             </div>
-        </main>
+        <?php endif; ?>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-100 text-gray-600">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">NIK</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Nama</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">No. Rekam Medis</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tanggal Lahir</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Jenis Kelamin</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tipe Registrasi</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <?php
+                    try {
+                        $stmt = $conn->query("SELECT * FROM Pasien ORDER BY 
+                                            CASE 
+                                                WHEN Nomor_Rekam_Medis LIKE 'RM-%' THEN 1 
+                                                ELSE 2 
+                                            END,
+                                            Nomor_Rekam_Medis ASC");
+
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            $is_online = strpos($row['Nomor_Rekam_Medis'], 'RM-') === 0;
+                            $registration_type = $is_online ? 'online' : 'offline';
+                            $badge_class = $is_online ?
+                                'bg-green-100 text-green-800' :
+                                'bg-blue-100 text-blue-800';
+
+                            echo "<tr>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['NIK']) . "</td>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['Nama']) . "</td>";
+                            echo "<td class='px-6 py-4 text-indigo-600'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
+                            echo "<td class='px-6 py-4'>";
+                            echo "<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full {$badge_class}'>";
+                            echo ucfirst($registration_type);
+                            echo "</span>";
+                            echo "</td>";
+                            echo "<td class='px-6 py-4 text-center'>";
+                            echo "<button onclick='openModal(\"edit\", " . json_encode($row) . ")' class='text-blue-600 hover:text-blue-900 mr-3'>
+                                    <i class='fas fa-edit'></i>
+                                </button>";
+                            echo "<form method='POST' action='' class='inline' onsubmit='return confirmDelete()'>
+                                    <input type='hidden' name='nik' value='" . htmlspecialchars($row['NIK']) . "'>
+                                    <button type='submit' name='delete_patient' class='text-red-600 hover:text-red-900'>
+                                        <i class='fas fa-trash'></i>
+                                    </button>
+                                </form>";
+                            echo "</td>";
+                            echo "</tr>";
+                        }
+                    } catch (PDOException $e) {
+                        echo "<tr><td colspan='7' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
     </div>
 
     <!-- Edit Patient Modal -->
