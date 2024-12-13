@@ -7,15 +7,16 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: login.php");
     exit();
 }
-$patientName = "Pasien";
-if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
-    $stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
-    $stmt->bind_param("i", $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result()->fetch_assoc();
-    $patientName = $result['Nama'] ?? "Pasien";
-}
+
 $patientId = $_SESSION['user_id'];
+
+// Get patient name
+$stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
+$stmt->bind_param("i", $patientId);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$patientName = $result['Nama'] ?? "Pasien";
+
 $message = '';
 $messageType = '';
 
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $doctorId = $_POST['doctor'] ?? '';
     $scheduleId = $_POST['schedule'] ?? '';
     $registrationDate = $_POST['registration_date'];
-    
+
     // Validate inputs
     if (empty($doctorId) || empty($scheduleId)) {
         $message = "Semua field harus diisi!";
@@ -40,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Start transaction for data integrity
         $conn->begin_transaction();
-        
+
         try {
             // Get schedule details
             $scheduleQuery = $conn->prepare("
@@ -52,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $scheduleQuery->execute();
             $scheduleDetails = $scheduleQuery->get_result()->fetch_assoc();
 
-            // Check for existing registration on the same day with the same doctor
+            // Check for existing registration
             $existingRegQuery = $conn->prepare("
                 SELECT p.ID_Pendaftaran, d.Nama AS Nama_Dokter
                 FROM Pendaftaran p
@@ -65,13 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $existingRegQuery->bind_param("iiss", 
                 $patientId, 
-                $scheduleDetails['ID_Dokter'], 
-                $scheduleDetails['Hari'], 
+                $scheduleDetails['ID_Dokter'],
+                $scheduleDetails['Hari'],
                 $registrationDate
             );
             $existingRegQuery->execute();
             $existingReg = $existingRegQuery->get_result();
-            
+
             if ($existingReg->num_rows > 0) {
                 $existingRegDetails = $existingReg->fetch_assoc();
                 throw new Exception("Anda sudah terdaftar pada hari {$scheduleDetails['Hari']} dengan dokter {$existingRegDetails['Nama_Dokter']}.");
@@ -94,28 +95,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE jd.ID_Jadwal = ?
                 FOR UPDATE
             ");
-            
+
             $scheduleCheck->bind_param("sss", $scheduleId, $registrationDate, $scheduleId);
             $scheduleCheck->execute();
             $scheduleInfo = $scheduleCheck->get_result()->fetch_assoc();
-            
-            if ($scheduleInfo['used_quota'] >= $scheduleInfo['Kuota_Online']) {
+
+            if ($scheduleInfo['Kuota_Online'] <= 0) {
+                throw new Exception("Kuota pendaftaran online untuk jadwal ini sudah penuh!");
+            }
+
+            if ($scheduleInfo['used_quota'] >= $scheduleInfo['Max_Pasien']) {
                 throw new Exception("Kuota pendaftaran untuk jadwal ini sudah penuh!");
             }
 
-            // Insert registration with initial verification status
+            // Update kuota online
+            $updateQuotaStmt = $conn->prepare("
+                UPDATE Jadwal_Dokter 
+                SET Kuota_Online = Kuota_Online - 1
+                WHERE ID_Jadwal = ? 
+                AND Kuota_Online > 0
+            ");
+            $updateQuotaStmt->bind_param("i", $scheduleId);
+
+            if (!$updateQuotaStmt->execute()) {
+                throw new Exception("Gagal memperbarui kuota jadwal");
+            }
+
+            // Insert registration
             $registerQuery = $conn->prepare("
                 INSERT INTO Pendaftaran 
                 (ID_Pasien, ID_Jadwal, Waktu_Daftar, Status, Verifikasi, No_Antrian, Tipe_Pendaftaran) 
                 VALUES (?, ?, ?, 'Menunggu', 'Belum Diverifikasi', 0, 'online')
             ");
-            
+
             $registerQuery->bind_param("iis", 
                 $patientId, 
                 $scheduleId, 
                 $registrationDate
             );
-            
+
             if (!$registerQuery->execute()) {
                 throw new Exception("Gagal melakukan pendaftaran: " . $conn->error);
             }
@@ -123,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->commit();
             $message = "Pendaftaran berhasil diajukan! Mohon tunggu verifikasi dari admin.";
             $messageType = "success";
-            
+
         } catch (Exception $e) {
             $conn->rollback();
             $message = "Error: " . $e->getMessage();
@@ -140,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pendaftaran Dokter - Poliklinik X</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
 <body class="bg-gray-100">
@@ -187,75 +205,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </a>
             </div>
         </aside>
-        <body class="bg-gray-100">
-    <!-- Main Content -->
-    <div class="flex-1 ml-64 bg-gray-100 py-8">
-            <div class="max-w-3xl mx-auto px-4">
+
+        <!-- Main Content -->
+        <div class="flex-1 ml-64 p-8">
+            <div class="max-w-3xl mx-auto">
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <h1 class="text-2xl font-bold mb-6">Pendaftaran Dokter</h1>
 
-            <?php if ($message): ?>
-                <div class="mb-4 p-4 rounded <?php echo $messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'; ?>">
-                    <?php echo $message; ?>
-                </div>
-            <?php endif; ?>
+                    <?php if ($message): ?>
+                        <div class="mb-4 p-4 rounded <?php echo $messageType === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'; ?>">
+                            <?php echo $message; ?>
+                        </div>
+                    <?php endif; ?>
 
-            <form method="POST" class="space-y-6" id="registrationForm">
-                <!-- Specialization Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Pilih Spesialis</label>
-                    <select id="specialization" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">Pilih Spesialis</option>
-                        <?php foreach ($specializations as $spec): ?>
-                            <option value="<?php echo htmlspecialchars($spec['Spesialis']); ?>">
-                                <?php echo htmlspecialchars($spec['Spesialis']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+                    <form method="POST" class="space-y-6" id="registrationForm">
+                        <!-- Specialization Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Spesialis</label>
+                            <select id="specialization" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">Pilih Spesialis</option>
+                                <?php foreach ($specializations as $spec): ?>
+                                    <option value="<?php echo htmlspecialchars($spec['Spesialis']); ?>">
+                                        <?php echo htmlspecialchars($spec['Spesialis']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
 
-                <!-- Doctor Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Pilih Dokter</label>
-                    <select name="doctor" id="doctor"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        required>
-                        <option value="">Pilih Dokter Terlebih Dahulu</option>
-                    </select>
-                </div>
+                        <!-- Doctor Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Dokter</label>
+                            <select name="doctor" id="doctor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                <option value="">Pilih Dokter Terlebih Dahulu</option>
+                            </select>
+                        </div>
 
-                <!-- Date Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Pilih Tanggal Pendaftaran</label>
-                    <input type="date" name="registration_date" id="registration_date"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        required>
-                </div>
+                        <!-- Date Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Tanggal Pendaftaran</label>
+                            <input type="date" name="registration_date" id="registration_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                        </div>
 
-                <!-- Schedule Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Pilih Jadwal</label>
-                    <select name="schedule" id="schedule"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        required>
-                        <option value="">Pilih Jadwal</option>
-                    </select>
-                </div>
+                        <!-- Schedule Selection -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pilih Jadwal</label>
+                            <select name="schedule" id="schedule" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                                <option value="">Pilih Jadwal</option>
+                            </select>
+                        </div>
 
-                <div class="flex items-center justify-between space-x-4">
-                    <a href="patient_dashboard.php"
-                        class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Kembali
-                    </a>
-                    <button type="submit"
-                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Daftar
-                    </button>
+                        <div class="flex items-center justify-between space-x-4">
+                            <a href="patient_dashboard.php" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Kembali
+                            </a>
+                            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Daftar
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
-
     <script>
         // Set minimum date to today
         const today = new Date().toISOString().split('T')[0];
