@@ -6,7 +6,6 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: index.php");
     exit();
 }
-// Fetch the logged-in patient's name
 $patientName = "Pasien";
 if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
     $stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
@@ -24,18 +23,17 @@ $stmt = $conn->prepare("
         p.Status,
         p.Tanggal,
         d.Nama as nama_dokter,
-        d.Spesialis,
-        mp.ID_Metode,
-        mp.Nama_Metode
+        d.Spesialis
     FROM Pembayaran p
     JOIN Pendaftaran pend ON p.ID_Pendaftaran = pend.ID_Pendaftaran
     JOIN Jadwal_Dokter jd ON pend.ID_Jadwal = jd.ID_Jadwal
     JOIN Dokter d ON jd.ID_Dokter = d.ID_Dokter
-    LEFT JOIN Detail_Pembayaran dp ON p.ID_Pembayaran = dp.ID_Pembayaran
-    LEFT JOIN Metode_Pembayaran mp ON dp.ID_Metode = mp.ID_Metode
-    WHERE pend.ID_Pasien = ? AND p.Status = 'Pending'
+    WHERE pend.ID_Pasien = ?
     ORDER BY p.Tanggal DESC
 ");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$paymentHistory = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->bind_param("i", $_SESSION['user_id']);
 $stmt->execute();
 $pendingPayments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -103,126 +101,105 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-
-<div class="flex min-h-screen bg-gray-100">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-blue-800 text-white fixed h-full">
-        <div class="p-4">
-            <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
-            <nav class="space-y-2">
-                <a href="patient_dashboard.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="jadwal_dokter.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Jadwal Dokter</span>
-                </a>
-                <a href="register_appointment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
-                    <i class="fas fa-plus-circle"></i>
-                    <span>Buat Janji</span>
-                </a>
-                <a href="medical_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
-                    <i class="fas fa-file-medical"></i>
-                    <span>Hasil Pemeriksaan</span>
-                </a>
-                <a href="payment.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
-                    <i class="fas fa-receipt"></i>
-                    <span>Pembayaran</span>
-                </a>
-            </nav>
-        </div>
-        <div class="absolute bottom-0 w-64 p-4 bg-blue-900">
-            <div class="flex items-center space-x-3 mb-4">
-                <i class="fas fa-user-circle text-2xl"></i>
-                <div>
-                    <p class="font-medium"><?php echo htmlspecialchars($patientName); ?></p>
-                    <p class="text-sm text-gray-300">Pasien</p>
-                </div>
-            </div>
-            <a href="logout.php" class="flex items-center space-x-3 p-2 rounded hover:bg-blue-800 text-red-300">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-    </aside>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-6">Pembayaran Pending</h1>
-        
-        <?php if (empty($pendingPayments)): ?>
-            <div class="bg-white rounded-lg shadow p-6">
-                <p class="text-gray-500">Tidak ada pembayaran pending</p>
+    <div class="flex min-h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-blue-800 text-white fixed h-full">
+            <div class="p-4">
+                <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
+                <nav class="space-y-2">
+                    <a href="patient_dashboard.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="jadwal_dokter.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Jadwal Dokter</span>
+                    </a>
+                    <a href="register_appointment.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Buat Janji</span>
+                    </a>
+                    <a href="medical_history.php" class="flex items-center space-x-3 p-3 rounded hover:bg-blue-700">
+                        <i class="fas fa-file-medical"></i>
+                        <span>Hasil Pemeriksaan</span>
+                    </a>
+                    <a href="payment.php" class="flex items-center space-x-3 p-3 rounded bg-blue-900">
+                        <i class="fas fa-receipt"></i>
+                        <span>Pembayaran</span>
+                    </a>
+                </nav>
             </div>
-        <?php else: ?>
-            <?php foreach ($pendingPayments as $payment): ?>
-                <div class="bg-white rounded-lg shadow p-6 mb-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h2 class="text-xl font-semibold">
-                                Pembayaran #<?php echo $payment['ID_Pembayaran']; ?>
-                            </h2>
-                            <p class="text-gray-600">
-                                Dr. <?php echo htmlspecialchars($payment['nama_dokter']); ?> 
-                                (<?php echo htmlspecialchars($payment['Spesialis']); ?>)
-                            </p>
-                            <p class="text-gray-500 text-sm">
-                                <?php echo date('d F Y', strtotime($payment['Tanggal'])); ?>
-                            </p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-lg font-bold">
-                                Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?>
-                            </p>
-                            <span class="px-2 py-1 rounded-full text-sm 
-                                <?php echo $payment['Status'] === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'; ?>">
-                                <?php echo $payment['Status']; ?>
-                            </span>
-                        </div>
+            <div class="absolute bottom-0 w-64 p-4 bg-blue-900">
+                <div class="flex items-center space-x-3 mb-4">
+                    <i class="fas fa-user-circle text-2xl"></i>
+                    <div>
+                        <p class="font-medium"><?php echo htmlspecialchars($patientName); ?></p>
+                        <p class="text-sm text-gray-300">Pasien</p>
                     </div>
-
-                    <form action="" method="POST" enctype="multipart/form-data" class="mt-6">
-                        <input type="hidden" name="payment_id" value="<?php echo $payment['ID_Pembayaran']; ?>">
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Metode Pembayaran
-                                </label>
-                                <select name="payment_method" required 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Pilih metode pembayaran</option>
-                                    <?php foreach ($paymentMethods as $method): ?>
-                                        <option value="<?php echo $method['ID_Metode']; ?>"><?php echo $method['Nama_Metode']; ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Nomor Referensi
-                                </label>
-                                <input type="text" name="reference_number" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Bukti Pembayaran
-                            </label>
-                            <input type="file" name="payment_proof" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-
-                        <div class="mt-6 flex justify-between items-center">
-                            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
-                                Submit Pembayaran
-                            </button>
-                        </div>
-                    </form>
                 </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+                <a href="logout.php" class="flex items-center space-x-3 p-2 rounded hover:bg-blue-800 text-red-300">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 ml-64 bg-gray-100 py-8">
+            <div class="container mx-auto px-4 py-8">
+                <h1 class="text-2xl font-bold mb-6">Riwayat Pembayaran</h1>
+
+                <?php if (empty($paymentHistory)): ?>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <p class="text-gray-500">Tidak ada riwayat pembayaran</p>
+                    </div>
+                <?php else: ?>
+                    <table class="min-w-full bg-white rounded-lg shadow">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                     
+                                <th class="py-3 px-6 text-left">Dokter</th>
+                                <th class="py-3 px-6 text-left">Spesialis</th>
+                                <th class="py-3 px-6 text-left">Tanggal</th>
+                                <th class="py-3 px-6 text-left">Jumlah</th>
+                                <th class="py-3 px-6 text-left">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-600 text-sm">
+                            <?php foreach ($paymentHistory as $payment): ?>
+                                <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                    
+                                    <td class="py-4 px-6"><?php echo htmlspecialchars($payment['nama_dokter']); ?></td>
+                                    <td class="py-4 px-6"><?php echo htmlspecialchars($payment['Spesialis']); ?></td>
+                                    <td class="py-4 px-6"><?php echo date('d F Y', strtotime($payment['Tanggal'])); ?></td>
+                                    <td class="py-4 px-6">Rp <?php echo number_format($payment['Jumlah'], 0, ',', '.'); ?></td>
+                                    <td class="py-4 px-6">
+                                        <span class="px-2 py-1 rounded-full text-sm 
+                                            <?php echo $payment['Status'] === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'; ?>">
+                                            <?php echo $payment['Status']; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Add client-side validation if needed
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const fileInput = this.querySelector('input[type="file"]');
+                if (fileInput.files[0] && fileInput.files[0].size > 5 * 1024 * 1024) {
+                    e.preventDefault();
+                    alert('Ukuran file tidak boleh lebih dari 5MB');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
