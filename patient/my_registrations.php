@@ -186,14 +186,16 @@ $registrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                                         <?php
                                         if ($reg['Verifikasi'] === 'Terverifikasi') {
                                             echo htmlspecialchars($reg['No_Antrian']);
+                                        } else if ($reg['Verifikasi'] === 'Ditolak') {
+                                            echo '<span class="text-red-600">Pendaftaran Ditolak</span>';
                                         } else {
                                             echo '<span class="text-yellow-600">Menunggu verifikasi</span>';
                                         }
                                         ?>
                                     </p>
                                     <p class="text-sm text-gray-600">
-                                        <span class="font-medium">Waktu Pendaftaran:</span>
-                                        <?php echo date('d/m/Y H:i', strtotime($reg['Waktu_Daftar'])); ?>
+                                        <span class="font-medium">Tanggal Pendaftaran:</span>
+                                        <?php echo date('d/m/Y', strtotime($reg['Waktu_Daftar'])); ?>
                                     </p>
                                 </div>
 

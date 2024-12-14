@@ -14,6 +14,7 @@ $messageType = '';
 // Handle Add Payment
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $namaPasien = isset($_POST['nama_pasien']) ? $_POST['nama_pasien'] : '';
+    $dokterId = $_POST['dokter_id'];
     $jumlah = $_POST['jumlah'];
     $metode = $_POST['metode'];
     $status = isset($_POST['status']) ? 'Lunas' : 'Belum Lunas';
@@ -23,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         SELECT pd.ID_Pendaftaran
         FROM Pendaftaran pd
         JOIN Pasien pa ON pd.ID_Pasien = pa.ID_Pasien
-        JOIN Pemeriksaan pm ON pd.ID_Pendaftaran = pm.ID_Pendaftaran
         WHERE pa.Nama = ?
         ORDER BY pd.ID_Pendaftaran DESC
         LIMIT 1
@@ -52,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $messageType = "error";
     }
 }
-
 // Handle Edit Payment
 if (isset($_POST['edit_payment'])) {
     $pembayaranId = $_POST['payment_id'];
@@ -87,7 +86,6 @@ if (isset($_GET['delete'])) {
         $messageType = "error";
     }
 }
-
 // Retrieve payment data from the database
 $paymentQuery = $conn->query("
     SELECT p.ID_Pembayaran, pa.Nama AS Nama_Pasien, d.Nama AS Nama_Dokter, d.Spesialis, p.Tanggal, p.Jumlah, p.Metode, p.Status
@@ -114,7 +112,7 @@ $paymentQuery = $conn->query("
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-    <aside class="w-64 bg-blue-800 text-white fixed h-full">
+        <aside class="w-64 bg-blue-800 text-white fixed h-full">
             <div class="p-4">
                 <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
                 <nav class="space-y-2">
@@ -182,13 +180,7 @@ $paymentQuery = $conn->query("
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
                                 <option value="">Pilih Pasien</option>
                                 <?php
-                                $pasienQuery = $conn->query("
-                                    SELECT pa.Nama
-                                    FROM Pasien pa
-                                    JOIN Pendaftaran pd ON pa.ID_Pasien = pd.ID_Pasien
-                                    JOIN Pemeriksaan pm ON pd.ID_Pendaftaran = pm.ID_Pendaftaran
-                                    GROUP BY pa.Nama
-                                ");
+                                $pasienQuery = $conn->query("SELECT pa.Nama FROM Pasien pa JOIN Pendaftaran pd ON pa.ID_Pasien = pd.ID_Pasien GROUP BY pa.Nama");
                                 while ($pasien = $pasienQuery->fetch_assoc()) {
                                     echo "<option value='" . $pasien['Nama'] . "'>" . $pasien['Nama'] . "</option>";
                                 }
@@ -197,9 +189,22 @@ $paymentQuery = $conn->query("
                         </div>
 
                         <div>
+                            <label for="nama_dokter" class="block text-sm font-medium text-gray-700">Nama Dokter</label>
+                            <select id="nama_dokter" name="dokter_id" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                                <option value="">Pilih Dokter</option>
+                                <?php
+                                $dokterQuery = $conn->query("SELECT ID_Dokter, Nama FROM Dokter");
+                                while ($dokter = $dokterQuery->fetch_assoc()) {
+                                    echo "<option value='" . $dokter['ID_Dokter'] . "'>" . $dokter['Nama'] . "</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>         
+                        <div>
                             <label for="jumlah" class="block text-sm font-medium text-gray-700">Jumlah</label>
                             <input type="number" id="jumlah" name="jumlah" step="0.01" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200" readonly>
                         </div>
 
                         <div>
@@ -215,85 +220,69 @@ $paymentQuery = $conn->query("
                                 ?>
                             </select>
                         </div>
-
                         <div>
                             <label class="inline-flex items-center">
                                 <input type="checkbox" name="status" class="form-checkbox h-5 w-5 text-blue-600">
                                 <span class="ml-2 text-gray-700">Pembayaran Lunas</span>
                             </label>
-                        </div>
-
-                        <div class="col-span-full">
-                            <button type="submit"
-                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                Simpan
+                        </div>           
+                        <div class="col-span-2 flex justify-between items-center">
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                Tambah Pembayaran
                             </button>
                         </div>
                     </form>
 
-                    <!-- Daftar Pembayaran -->
-                    <h3 class="text-lg font-semibold mb-4">Daftar Pembayaran</h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Nama Pasien</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Nama Dokter</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Spesialis</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tanggal</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Jumlah</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Metode</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status</th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php while ($row = $paymentQuery->fetch_assoc()): ?>
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Nama_Pasien']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Nama_Dokter']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Spesialis']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Tanggal']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Jumlah']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Metode']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <?= htmlspecialchars($row['Status']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="#" onclick="openModal('edit', <?= $row['ID_Pembayaran']; ?>)"
-                                                class="text-blue-600 hover:text-blue-900 mr-3">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="?delete=<?= $row['ID_Pembayaran']; ?>"
-                                                onclick="return confirm('Apakah Anda yakin ingin menghapus pembayaran ini?')"
-                                                class="text-red-600 hover:text-red-900">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            </tbody>
+                    <?php if ($message): ?>
+                    <div class="mt-4 text-center text-<?php echo $messageType; ?>-600">
+                        <p><?php echo $message; ?></p>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Payment Records Table -->
+                    <div class="mt-8">
+    <h3 class="text-lg font-bold mb-4">Daftar Pembayaran</h3>
+    <table class="min-w-full table-auto bg-white shadow-md rounded-lg">
+        <thead>
+            <tr class="bg-blue-200 text-left">
+                <th class="px-4 py-2">No.</th>
+                <th class="px-4 py-2">Nama Pasien</th>
+                <th class="px-4 py-2">Nama Dokter</th>
+                <th class="px-4 py-2">Tanggal</th>
+                <th class="px-4 py-2">Jumlah</th>
+                <th class="px-4 py-2">Metode</th>
+                <th class="px-4 py-2">Status</th>
+                <th class="px-4 py-2">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+            $no = 1;
+            while ($payment = $paymentQuery->fetch_assoc()) {
+                echo "<tr>";
+                echo "<td class='px-4 py-2'>" . $no++ . "</td>";
+                echo "<td class='px-4 py-2'>" . htmlspecialchars($payment['Nama_Pasien']) . "</td>";
+                echo "<td class='px-4 py-2'>" . htmlspecialchars($payment['Nama_Dokter']) . "</td>";
+                echo "<td class='px-4 py-2'>" . $payment['Tanggal'] . "</td>";
+                echo "<td class='px-4 py-2'>" . number_format($payment['Jumlah'], 2) . "</td>";
+                echo "<td class='px-4 py-2'>" . htmlspecialchars($payment['Metode']) . "</td>";
+                echo "<td class='px-4 py-2'>" . htmlspecialchars($payment['Status']) . "</td>";
+                // Added the correct <td> with the action buttons here
+                echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                        <a href='#' onclick='openModal(\"edit\", {$payment['ID_Pembayaran']})'
+                           class='text-blue-600 hover:text-blue-900 mr-3'>
+                            <i class='fas fa-edit'></i>
+                        </a>
+                        <a href='?delete={$payment['ID_Pembayaran']}'
+                           onclick='return confirm(\"Apakah Anda yakin ingin menghapus pembayaran ini?\")'
+                           class='text-red-600 hover:text-red-900'>
+                            <i class='fas fa-trash'></i>
+                        </a>
+                    </td>";
+                echo "</tr>";
+            }
+            ?>
+        </tbody>
                         </table>
                     </div>
                 </div>
@@ -357,6 +346,21 @@ $paymentQuery = $conn->query("
 </div>
 
 <script>
+document.getElementById('nama_dokter').addEventListener('change', function() {
+            var dokterId = this.value;
+            if (dokterId) {
+                fetch('get_dokter_harga.php?dokter_id=' + dokterId)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.harga) {
+                            document.getElementById('jumlah').value = data.harga;
+                        }
+                    });
+            } else {
+                document.getElementById('jumlah').value = '';
+            }
+        });
+
 function openModal(type, id = null) {
     if (type === 'edit') {
         document.getElementById('editModal').classList.remove('hidden');
