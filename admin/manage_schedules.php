@@ -3,59 +3,65 @@ session_start();
 require_once('../config/db_connection.php');
 
 // Initialize response message variables
-$successMsg = '';
-$errorMsg = '';
+$successMsg = ''; // Menyimpan pesan sukses jika operasi berhasil
+$errorMsg = ''; // Menyimpan pesan error jika operasi gagal
 
 // Helper function to get all doctors
+// Fungsi untuk mengambil semua data dokter dari database
 function getDoctors($conn)
 {
     $sql = "SELECT ID_Dokter, Nama, Spesialis FROM dokter ORDER BY Nama";
     $result = $conn->query($sql);
-    return $result->fetch_all(MYSQLI_ASSOC);
+    return $result->fetch_all(MYSQLI_ASSOC); // Mengembalikan semua hasil dalam bentuk array asosiatif
 }
 
 // Helper function to get schedule by ID
+// Fungsi untuk mengambil jadwal dokter berdasarkan ID
 function getScheduleById($conn, $id)
 {
     $stmt = $conn->prepare("SELECT * FROM jadwal_dokter WHERE ID_Jadwal = ?");
-    $stmt->bind_param("i", $id);
+    $stmt->bind_param("i", $id); // Mengikat ID jadwal dengan parameter query
     $stmt->execute();
     $result = $stmt->get_result();
-    return $result->fetch_assoc();
+    return $result->fetch_assoc(); // Mengembalikan hasil dalam bentuk array asosiatif
 }
 
 // Handle Add/Edit Schedule
+// Menghandle aksi penambahan atau pengeditan jadwal
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['action'])) {
-        // Validate max patients
+    if (isset($_POST['action'])) { 
+        // Validasi kuota total (online + offline) tidak boleh melebihi kuota maksimal
         $total_quota = $_POST['kuota_online'] + $_POST['kuota_offline'];
         if ($total_quota > $_POST['max_pasien']) {
             $errorMsg = "Error: Total kuota (online + offline) tidak boleh melebihi maksimal pasien!";
         } else {
             if ($_POST['action'] == 'add') {
+                // Menambahkan jadwal baru jika aksi adalah 'add'
                 $stmt = $conn->prepare("INSERT INTO Jadwal_Dokter (ID_Dokter, Jam_Mulai, Jam_Selesai, Kuota_Online, Kuota_Offline, Max_Pasien, Hari, Status, Keterangan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->bind_param(
-                    "issiiisss",
-                    $_POST['dokter'],
-                    $_POST['jam_mulai'],
-                    $_POST['jam_selesai'],
-                    $_POST['kuota_online'],
-                    $_POST['kuota_offline'],
-                    $_POST['max_pasien'],
-                    $_POST['hari'],
-                    $_POST['status'],
-                    $_POST['keterangan']
+                    "issiiisss", // Menentukan tipe data parameter
+                    $_POST['dokter'], // ID dokter
+                    $_POST['jam_mulai'], // Jam mulai
+                    $_POST['jam_selesai'], // Jam selesai
+                    $_POST['kuota_online'], // Kuota online
+                    $_POST['kuota_offline'], // Kuota offline
+                    $_POST['max_pasien'], // Kuota maksimal
+                    $_POST['hari'], // Hari
+                    $_POST['status'], // Status jadwal
+                    $_POST['keterangan'] // Keterangan tambahan
                 );
 
+                // Mengeksekusi query dan memeriksa apakah berhasil
                 if ($stmt->execute()) {
-                    $successMsg = "Jadwal berhasil ditambahkan";
+                    $successMsg = "Jadwal berhasil ditambahkan"; // Menampilkan pesan sukses
                 } else {
-                    $errorMsg = "Error: " . $stmt->error;
+                    $errorMsg = "Error: " . $stmt->error; // Menampilkan pesan error jika gagal
                 }
             } else if ($_POST['action'] == 'edit') {
+                // Mengedit jadwal jika aksi adalah 'edit'
                 $stmt = $conn->prepare("UPDATE Jadwal_Dokter SET ID_Dokter=?, Jam_Mulai=?, Jam_Selesai=?, Kuota_Online=?, Kuota_Offline=?, Max_Pasien=?, Hari=?, Status=?, Keterangan=? WHERE ID_Jadwal=?");
                 $stmt->bind_param(
-                    "issiiisssi",
+                    "issiiisssi", // Menentukan tipe data parameter
                     $_POST['dokter'],
                     $_POST['jam_mulai'],
                     $_POST['jam_selesai'],
@@ -65,13 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $_POST['hari'],
                     $_POST['status'],
                     $_POST['keterangan'],
-                    $_POST['id_jadwal']
+                    $_POST['id_jadwal'] // ID jadwal yang akan diupdate
                 );
 
+                // Mengeksekusi query dan memeriksa apakah berhasil
                 if ($stmt->execute()) {
-                    $successMsg = "Jadwal berhasil diperbarui";
+                    $successMsg = "Jadwal berhasil diperbarui"; // Menampilkan pesan sukses
                 } else {
-                    $errorMsg = "Error: " . $stmt->error;
+                    $errorMsg = "Error: " . $stmt->error; // Menampilkan pesan error jika gagal
                 }
             }
         }
@@ -79,17 +86,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 // Handle Delete Schedule
+// Menghandle penghapusan jadwal berdasarkan ID
 if (isset($_GET['delete'])) {
     $stmt = $conn->prepare("DELETE FROM jadwal_dokter WHERE ID_Jadwal = ?");
-    $stmt->bind_param("i", $_GET['delete']);
+    $stmt->bind_param("i", $_GET['delete']); // Mengikat parameter ID jadwal
 
+    // Mengeksekusi query dan memeriksa apakah berhasil
     if ($stmt->execute()) {
-        $successMsg = "Jadwal berhasil dihapus";
+        $successMsg = "Jadwal berhasil dihapus"; // Menampilkan pesan sukses
     } else {
-        $errorMsg = "Error: " . $stmt->error;
+        $errorMsg = "Error: " . $stmt->error; // Menampilkan pesan error jika gagal
     }
 }
+
 // Get all schedules with doctor information
+// Mengambil semua jadwal dokter beserta informasi dokter, jumlah pendaftaran yang konfirmasi/menunggu, dan sisa kuota
 $schedules = $conn->query("
     SELECT jd.*, d.Nama as nama_dokter, d.Spesialis,
            (SELECT COUNT(*) FROM pendaftaran p 
@@ -102,8 +113,10 @@ $schedules = $conn->query("
     JOIN dokter d ON jd.ID_Dokter = d.ID_Dokter 
     ORDER BY jd.Hari, jd.Jam_Mulai
 ");
+// Memanggil fungsi untuk mendapatkan daftar dokter
 $doctors = getDoctors($conn);
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">

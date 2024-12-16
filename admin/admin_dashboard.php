@@ -1,34 +1,39 @@
 <?php
-session_start();
+session_start(); // Memulai sesi PHP agar variabel sesi dapat digunakan di seluruh aplikasi
 
-// Database connection configuration
+// Fungsi untuk konfigurasi dan koneksi ke database menggunakan PDO
 function connectDB()
 {
-    $host = 'localhost';
-    $dbname = 'PoliklinikX';
-    $username = 'root';  // Replace with your MySQL username
-    $password = '';      // Replace with your MySQL password
+    $host = 'localhost'; // Host database
+    $dbname = 'PoliklinikX'; // Nama database
+    $username = 'root'; // Username untuk koneksi database (ganti sesuai dengan pengaturan MySQL Anda)
+    $password = ''; // Password untuk koneksi database (ganti sesuai dengan pengaturan MySQL Anda)
 
     try {
+        // Membuat koneksi ke database menggunakan PDO
         $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $conn;
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); // Mengatur mode error ke Exception
+        return $conn; // Mengembalikan objek koneksi
     } catch (PDOException $e) {
+        // Jika koneksi gagal, tampilkan pesan error dan hentikan eksekusi
         die("Connection failed: " . $e->getMessage());
     }
 }
 
-// Check if user is logged in as admin
+// Memeriksa apakah pengguna telah login sebagai admin
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
+    // Jika pengguna belum login atau bukan admin, arahkan ke halaman login
     header("Location: login.php");
     exit();
 }
 
+// Membuat koneksi ke database menggunakan fungsi connectDB()
 $conn = connectDB();
+
+// Mendapatkan tanggal hari ini dalam format 'Y-m-d'
 $today = date('Y-m-d');
-
-
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">

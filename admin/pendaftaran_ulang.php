@@ -2,26 +2,29 @@
 session_start();
 require_once('../config/db_connection.php');
 
+// Cek apakah pengguna login sebagai admin
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
-$message = '';
-$messageType = '';
+$message = ''; // Pesan untuk status verifikasi
+$messageType = ''; // Jenis pesan (berhasil atau error)
 
+// Proses ketika form disubmit menggunakan POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['action']) && isset($_POST['pendaftaran_id'])) {
-        $pendaftaranId = $_POST['pendaftaran_id'];
-        $action = $_POST['action'];
-        $catatan = $_POST['catatan'] ?? '';
+        $pendaftaranId = $_POST['pendaftaran_id']; // ID pendaftaran
+        $action = $_POST['action']; // Aksi (verifikasi atau tolak)
+        $catatan = $_POST['catatan'] ?? ''; // Catatan admin (opsional)
 
         try {
-            $conn->begin_transaction();
+            $conn->begin_transaction(); // Mulai transaksi
 
             if ($action === 'verify') {
+                // Query untuk mengambil detail pendaftaran
                 $regQuery = $conn->prepare("
-                    SELECT p.ID_Jadwal, p.Waktu_Daftar, jd.Kuota_Online 
+                    SELECT p.ID_Jadwal, p.Waktu_Daftar 
                     FROM Pendaftaran p 
                     JOIN Jadwal_Dokter jd ON p.ID_Jadwal = jd.ID_Jadwal
                     JOIN Pasien pas ON p.ID_Pasien = pas.ID_Pasien
@@ -35,10 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Pendaftaran tidak ditemukan atau bukan pendaftaran online");
                 }
 
-                if ($regDetails['Kuota_Online'] <= 0) {
-                    throw new Exception("Kuota online sudah habis");
-                }
-
+                // Ambil nomor antrian selanjutnya
                 $queueQuery = $conn->prepare("
                     SELECT COALESCE(MAX(No_Antrian), 0) + 1 as next_queue 
                     FROM Pendaftaran 
@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $queueQuery->execute();
                 $nextQueue = $queueQuery->get_result()->fetch_assoc()['next_queue'];
 
+                // Update status pendaftaran menjadi 'Terverifikasi' dan berikan nomor antrian
                 $updateStmt = $conn->prepare("
                     UPDATE Pendaftaran 
                     SET Verifikasi = 'Terverifikasi',
@@ -60,23 +61,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
                 $updateStmt->bind_param("sii", $catatan, $nextQueue, $pendaftaranId);
 
-                $updateQuotaStmt = $conn->prepare("
-                    UPDATE Jadwal_Dokter 
-                    SET Kuota_Online = Kuota_Online - 1
-                    WHERE ID_Jadwal = ? 
-                    AND Kuota_Online > 0
-                ");
-                $updateQuotaStmt->bind_param("i", $regDetails['ID_Jadwal']);
-
-                if ($updateStmt->execute() && $updateQuotaStmt->execute()) {
-                    $conn->commit();
+                if ($updateStmt->execute()) {
+                    $conn->commit(); // Commit transaksi
                     $message = "Pendaftaran berhasil diverifikasi";
                     $messageType = "success";
                 } else {
-                    throw new Exception("Gagal memperbarui status pendaftaran atau kuota");
+                    throw new Exception("Gagal memperbarui status pendaftaran");
                 }
 
             } else if ($action === 'reject') {
+                // Jika ditolak, update kuota
+                $updateQuotaStmt = $conn->prepare("
+                    UPDATE Jadwal_Dokter jd
+                    JOIN Pendaftaran p ON jd.ID_Jadwal = p.ID_Jadwal
+                    SET jd.Kuota_Online = jd.Kuota_Online + 1
+                    WHERE p.ID_Pendaftaran = ?
+                ");
+                $updateQuotaStmt->bind_param("i", $pendaftaranId);
+
+                if (!$updateQuotaStmt->execute()) {
+                    throw new Exception("Gagal memperbarui kuota jadwal");
+                }
+
+                // Update status pendaftaran menjadi 'Ditolak'
                 $updateStmt = $conn->prepare("
                     UPDATE Pendaftaran 
                     SET Verifikasi = 'Ditolak',
@@ -84,16 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         Catatan_Verifikasi = ?,
                         Status = 'Batal'
                     WHERE ID_Pendaftaran = ?
-                    AND EXISTS (
-                        SELECT 1 FROM Pasien ps 
-                        WHERE ps.ID_Pasien = Pendaftaran.ID_Pasien 
-                        AND ps.Registration_Type = 'online'
-                    )
                 ");
                 $updateStmt->bind_param("si", $catatan, $pendaftaranId);
 
                 if ($updateStmt->execute()) {
-                    $conn->commit();
+                    $conn->commit(); // Commit transaksi
                     $message = "Pendaftaran berhasil ditolak";
                     $messageType = "success";
                 } else {
@@ -102,13 +104,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
         } catch (Exception $e) {
-            $conn->rollback();
+            $conn->rollback(); // Rollback transaksi jika ada error
             $message = "Error: " . $e->getMessage();
             $messageType = "error";
         }
     }
 }
 
+// Query untuk mengambil pendaftaran yang belum diverifikasi
 $query = "
     SELECT 
         p.ID_Pendaftaran,
@@ -235,9 +238,6 @@ $pendingRegistrations = $pendingRegistrations->fetch_all(MYSQLI_ASSOC);
                                     <p class="text-sm text-gray-600">
                                         Tanggal Daftar: <?php echo date('d/m/Y H:i', strtotime($reg['Waktu_Daftar'])); ?>
                                     </p>
-                                    <p class="text-sm text-gray-600">
-                                        Sisa Kuota Online: <?php echo htmlspecialchars($reg['Kuota_Online']); ?>
-                                    </p>
                                 </div>
                             </div>
 
@@ -254,27 +254,28 @@ $pendingRegistrations = $pendingRegistrations->fetch_all(MYSQLI_ASSOC);
                                 </p>
                             </div>
 
-                            <form method="POST" class="space-y-4">
-                                <input type="hidden" name="pendaftaran_id" value="<?php echo $reg['ID_Pendaftaran']; ?>">
+                            <?php if ($reg['Verifikasi'] !== 'Ditolak'): ?>
+                                <form method="POST" class="space-y-4">
+                                    <input type="hidden" name="pendaftaran_id" value="<?php echo $reg['ID_Pendaftaran']; ?>">
 
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Catatan Verifikasi</label>
-                                    <textarea name="catatan" rows="2"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
-                                </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Catatan Verifikasi</label>
+                                        <textarea name="catatan" rows="2"
+                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                    </div>
 
-                                <div class="flex space-x-4">
-                                    <button type="submit" name="action" value="verify"
-                                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                        <?php echo $reg['Kuota_Online'] <= 0 ? 'disabled' : ''; ?>>
-                                        Verifikasi
-                                    </button>
-                                    <button type="submit" name="action" value="reject"
-                                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                        Tolak
-                                    </button>
-                                </div>
-                            </form>
+                                    <div class="flex space-x-4">
+                                        <button type="submit" name="action" value="verify"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                            Verifikasi
+                                        </button>
+                                        <button type="submit" name="action" value="reject"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                            Tolak
+                                        </button>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>

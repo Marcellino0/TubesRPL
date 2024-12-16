@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// Database connection configuration
+// Fungsi untuk koneksi ke database menggunakan PDO
 function connectDB()
 {
     $host = 'localhost';
@@ -10,128 +10,131 @@ function connectDB()
     $password = '';
 
     try {
+        // Mencoba membuat koneksi ke database dengan PDO
         $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
         $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $conn;
+        return $conn; // Mengembalikan objek koneksi
     } catch (PDOException $e) {
+        // Jika gagal, tampilkan pesan kesalahan
         die("Connection failed: " . $e->getMessage());
     }
 }
 
-// Check if user is logged in as admin
+// Memeriksa apakah user sudah login dan memiliki tipe 'admin'
+// Jika tidak, alihkan ke halaman login
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
+// Membuat koneksi ke database
 $conn = connectDB();
 
-// Handle Delete Action
+// Handle Delete Action (Hapus pasien)
 if (isset($_POST['delete_patient'])) {
     try {
-        $nik = $_POST['nik'];
+        $nik = $_POST['nik']; // Ambil NIK dari form
         $stmt = $conn->prepare("DELETE FROM Pasien WHERE NIK = ?");
-        $stmt->execute([$nik]);
-        $_SESSION['success_message'] = "Pasien berhasil dihapus";
-        header("Location: manage_patients.php");
+        $stmt->execute([$nik]); // Menjalankan query DELETE untuk pasien berdasarkan NIK
+        $_SESSION['success_message'] = "Pasien berhasil dihapus"; // Pesan sukses
+        header("Location: manage_patients.php"); // Arahkan kembali ke halaman manage_patients.php
         exit();
     } catch (PDOException $e) {
+        // Jika terjadi kesalahan, tampilkan pesan error
         $_SESSION['error_message'] = "Gagal menghapus pasien: " . $e->getMessage();
     }
 }
 
-// Handle Edit Action
+// Handle Edit Action (Edit data pasien)
 if (isset($_POST['edit_patient'])) {
     try {
+        // Update data pasien berdasarkan NIK
         $stmt = $conn->prepare("UPDATE Pasien SET Nama = ?, Tanggal_Lahir = ?, Jenis_Kelamin = ? WHERE NIK = ?");
-        $stmt->execute([
-            $_POST['nama'],
-            $_POST['tanggal_lahir'],
-            $_POST['jenis_kelamin'],
-            $_POST['nik']
-        ]);
-        $_SESSION['success_message'] = "Data pasien berhasil diperbarui";
-        header("Location: manage_patients.php");
+        $stmt->execute([$_POST['nama'], $_POST['tanggal_lahir'], $_POST['jenis_kelamin'], $_POST['nik']]);
+        $_SESSION['success_message'] = "Data pasien berhasil diperbarui"; // Pesan sukses
+        header("Location: manage_patients.php"); // Arahkan kembali ke halaman manage_patients.php
         exit();
     } catch (PDOException $e) {
+        // Jika terjadi kesalahan saat update, tampilkan pesan error
         $_SESSION['error_message'] = "Gagal memperbarui data pasien: " . $e->getMessage();
     }
 }
 
-// Handle Add Patient Action
+// Handle Add Patient Action (Tambah pasien baru)
 if (isset($_POST['add_patient'])) {
     try {
         // Validasi input dasar
         if (empty($_POST['nik']) || empty($_POST['nama']) || empty($_POST['tanggal_lahir']) || empty($_POST['jenis_kelamin'])) {
-            throw new Exception("Semua field harus diisi");
+            throw new Exception("Semua field harus diisi"); // Jika ada field yang kosong, beri pesan kesalahan
         }
 
-        // Validasi format NIK
+        // Validasi format NIK (harus 16 digit angka)
         if (strlen($_POST['nik']) !== 16 || !is_numeric($_POST['nik'])) {
             throw new Exception("NIK harus 16 digit angka");
         }
 
-        // Start transaction
-        $conn->beginTransaction();
-
-        // Check existing NIK dengan lock
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ? FOR UPDATE");
+        // Periksa apakah NIK sudah terdaftar
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ?");
         $stmt->execute([$_POST['nik']]);
         if ($stmt->fetchColumn() > 0) {
-            $conn->rollBack();
-            throw new Exception("NIK sudah terdaftar dalam sistem");
+            throw new Exception("NIK sudah terdaftar dalam sistem"); // Jika NIK sudah terdaftar, beri pesan kesalahan
         }
 
-        // Generate nomor rekam medis
-        $year = date('Y');
-        $stmt = $conn->prepare("SELECT MAX(CAST(SUBSTRING_INDEX(Nomor_Rekam_Medis, '-', -1) AS UNSIGNED)) as max_num 
-                               FROM Pasien 
-                               WHERE Nomor_Rekam_Medis LIKE 'RMOffline-$year-%'
-                               FOR UPDATE");
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $next_num = ($result['max_num'] ?? 0) + 1;
-        $nomor_rm = sprintf("RMOffline-%s-%05d", $year, $next_num);
+        // Mulai transaksi untuk memastikan konsistensi data
+        $conn->beginTransaction();
 
-        // Calculate age
-        $birthDate = new DateTime($_POST['tanggal_lahir']);
-        $today = new DateTime();
-        $age = $today->diff($birthDate)->y;
+        try {
+            // Generate nomor rekam medis berdasarkan tahun dan urutan
+            $year = date('Y');
+            $stmt = $conn->prepare("SELECT MAX(CAST(SUBSTRING_INDEX(Nomor_Rekam_Medis, '-', -1) AS UNSIGNED)) as max_num 
+                                   FROM Pasien 
+                                   WHERE Nomor_Rekam_Medis LIKE 'RMOffline-$year-%'
+                                   FOR UPDATE");
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $next_num = ($result['max_num'] ?? 0) + 1;
+            $nomor_rm = sprintf("RMOffline-%s-%05d", $year, $next_num);
 
-        // Insert new patient
-        $stmt = $conn->prepare("INSERT INTO Pasien 
-            (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur, Registration_Type) 
-            VALUES (?, ?, ?, ?, ?, ?, 'offline')");
+            // Menghitung umur pasien berdasarkan tanggal lahir
+            $birthDate = new DateTime($_POST['tanggal_lahir']);
+            $today = new DateTime();
+            $age = $today->diff($birthDate)->y;
 
-        $stmt->execute([
-            $_POST['nik'],
-            $_POST['nama'],
-            $_POST['tanggal_lahir'],
-            $_POST['jenis_kelamin'],
-            $nomor_rm,
-            $age
-        ]);
+            // Insert data pasien baru ke database
+            $stmt = $conn->prepare("INSERT INTO Pasien 
+                (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur, Registration_Type) 
+                VALUES (?, ?, ?, ?, ?, ?, 'offline')");
 
-        // Commit transaction
-        $conn->commit();
+            $stmt->execute([$_POST['nik'], $_POST['nama'], $_POST['tanggal_lahir'], $_POST['jenis_kelamin'], $nomor_rm, $age]);
 
-        $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
-        header("Location: manage_patients.php");
-        exit();
+            // Commit transaksi setelah data berhasil dimasukkan
+            $conn->commit();
+            $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
+            header("Location: manage_patients.php"); // Arahkan kembali ke halaman manage_patients.php
+            exit();
+
+        } catch (PDOException $e) {
+            // Rollback transaksi jika terjadi kesalahan
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            throw $e; // Lemparkan kesalahan untuk ditangani oleh blok luar
+        }
 
     } catch (PDOException $e) {
-        $conn->rollBack();
-        if ($e->getCode() == 23000) { // SQL error code for duplicate entry
+        // Menangani kesalahan database
+        if ($e->getCode() == 23000) { // Jika error adalah duplikat entri (contohnya NIK sudah ada)
             $_SESSION['error_message'] = "NIK sudah terdaftar dalam sistem";
         } else {
             $_SESSION['error_message'] = "Database Error: " . $e->getMessage();
         }
     } catch (Exception $e) {
-        $conn->rollBack();
+        // Menangani kesalahan validasi atau kesalahan lain
         $_SESSION['error_message'] = $e->getMessage();
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">
@@ -202,124 +205,97 @@ if (isset($_POST['add_patient'])) {
 
         <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
-            <!-- Header -->
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">Kelola Pasien</h1>
-                <button onclick="openModal('add')"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2 opacity-100 hover:opacity-90 transition-opacity duration-300">
-                    <i class="fas fa-plus mr-2"></i>
-                    <span>Tambah Pasien</span>
-                </button>
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Kelola Pasien</h2>
+            <button onclick="openModal('add')"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center space-x-2">
+                <i class="fas fa-plus mr-2"></i>
+                <span>Tambah Pasien</span>
+            </button>
+        </div>
 
+        <?php if (isset($_SESSION['success_message'])): ?>
+            <div class="mb-4 p-4 rounded bg-green-100 text-green-700">
+                <?php
+                echo $_SESSION['success_message'];
+                unset($_SESSION['success_message']);
+                ?>
             </div>
+        <?php endif; ?>
 
-            <!-- Success/Error Messages -->
-            <?php if (isset($_SESSION['success_message'])): ?>
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
-                    <?php
-                    echo $_SESSION['success_message'];
-                    unset($_SESSION['success_message']);
-                    ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['error_message'])): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-                    <?php
-                    echo $_SESSION['error_message'];
-                    unset($_SESSION['error_message']);
-                    ?>
-                </div>
-            <?php endif; ?>
-
-            <!-- Patient List -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-6">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead>
-                                <tr>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        NIK
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Nama
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        No. Rekam Medis
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tanggal Lahir
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Jenis Kelamin
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Tipe Registrasi
-                                    </th>
-                                    <th
-                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Aksi
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php
-                                try {
-                                    $stmt = $conn->query("SELECT * FROM Pasien ORDER BY 
-                                                        CASE 
-                                                            WHEN Nomor_Rekam_Medis LIKE 'RM-%' THEN 1 
-                                                            ELSE 2 
-                                                        END,
-                                                        Nomor_Rekam_Medis ASC");
-
-                                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                                        $is_online = strpos($row['Nomor_Rekam_Medis'], 'RM-') === 0;
-                                        $registration_type = $is_online ? 'online' : 'offline';
-                                        $badge_class = $is_online ?
-                                            'bg-green-100 text-green-800' :
-                                            'bg-blue-100 text-blue-800';
-
-                                        echo "<tr>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['NIK']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>" . htmlspecialchars($row['Nama']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-indigo-600'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap'>";
-                                        echo "<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full {$badge_class}'>";
-                                        echo ucfirst($registration_type);
-                                        echo "</span>";
-                                        echo "</td>";
-                                        echo "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3 flex'>";
-                                        echo "<button onclick='openModal(\"edit\", " . json_encode($row) . ")' class='text-blue-600 hover:text-blue-900'>
-                                                <i class='fas fa-edit'></i>
-                                            </button>";
-                                        echo "<form method='POST' action='' class='inline' onsubmit='return confirmDelete()'>
-                                                <input type='hidden' name='nik' value='" . htmlspecialchars($row['NIK']) . "'>
-                                                <button type='submit' name='delete_patient' class='text-red-600 hover:text-red-900'>
-                                                    <i class='fas fa-trash'></i>
-                                                </button>
-                                            </form>";
-                                        echo "</td>";
-                                        echo "</tr>";
-                                    }
-                                } catch (PDOException $e) {
-                                    echo "<tr><td colspan='7' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
-                                }
-                                ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <?php if (isset($_SESSION['error_message'])): ?>
+            <div class="mb-4 p-4 rounded bg-red-100 text-red-700">
+                <?php
+                echo $_SESSION['error_message'];
+                unset($_SESSION['error_message']);
+                ?>
             </div>
-        </main>
+        <?php endif; ?>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-100 text-gray-600">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">NIK</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Nama</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">No. Rekam Medis</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tanggal Lahir</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Jenis Kelamin</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tipe Registrasi</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <?php
+                    try {
+                        $stmt = $conn->query("SELECT * FROM Pasien ORDER BY 
+                                            CASE 
+                                                WHEN Nomor_Rekam_Medis LIKE 'RM-%' THEN 1 
+                                                ELSE 2 
+                                            END,
+                                            Nomor_Rekam_Medis ASC");
+
+                        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                            $is_online = strpos($row['Nomor_Rekam_Medis'], 'RM-') === 0;
+                            $registration_type = $is_online ? 'online' : 'offline';
+                            $badge_class = $is_online ?
+                                'bg-green-100 text-green-800' :
+                                'bg-blue-100 text-blue-800';
+
+                            echo "<tr>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['NIK']) . "</td>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['Nama']) . "</td>";
+                            echo "<td class='px-6 py-4 text-indigo-600'>" . htmlspecialchars($row['Nomor_Rekam_Medis']) . "</td>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['Tanggal_Lahir']) . "</td>";
+                            echo "<td class='px-6 py-4'>" . htmlspecialchars($row['Jenis_Kelamin']) . "</td>";
+                            echo "<td class='px-6 py-4'>";
+                            echo "<span class='px-2 inline-flex text-xs leading-5 font-semibold rounded-full {$badge_class}'>";
+                            echo ucfirst($registration_type);
+                            echo "</span>";
+                            echo "</td>";
+                            echo "<td class='px-6 py-4 text-center'>";
+                            echo "<button onclick='openModal(\"edit\", " . json_encode($row) . ")' class='text-blue-600 hover:text-blue-900 mr-3'>
+                                    <i class='fas fa-edit'></i>
+                                </button>";
+                            echo "<form method='POST' action='' class='inline' onsubmit='return confirmDelete()'>
+                                    <input type='hidden' name='nik' value='" . htmlspecialchars($row['NIK']) . "'>
+                                    <button type='submit' name='delete_patient' class='text-red-600 hover:text-red-900'>
+                                        <i class='fas fa-trash'></i>
+                                    </button>
+                                </form>";
+                            echo "</td>";
+                            echo "</tr>";
+                        }
+                    } catch (PDOException $e) {
+                        echo "<tr><td colspan='7' class='text-red-500'>Error: " . $e->getMessage() . "</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
     </div>
 
     <!-- Edit Patient Modal -->

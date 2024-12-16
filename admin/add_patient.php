@@ -1,37 +1,42 @@
 <?php
-session_start();
+session_start(); // Memulai sesi PHP agar variabel sesi dapat digunakan di seluruh aplikasi
 
-// Database connection configuration
+// Fungsi untuk konfigurasi dan koneksi ke database menggunakan PDO
 function connectDB() {
-    $host = 'localhost';
-    $dbname = 'PoliklinikX';
-    $username = 'root';  // Replace with your MySQL username
-    $password = '';      // Replace with your MySQL password
+    $host = 'localhost'; // Host database
+    $dbname = 'PoliklinikX'; // Nama database
+    $username = 'root'; // Username untuk koneksi database (ganti sesuai dengan pengaturan MySQL Anda)
+    $password = ''; // Password untuk koneksi database (ganti sesuai dengan pengaturan MySQL Anda)
 
     try {
+        // Membuat koneksi database dengan PDO
         $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $conn;
-    } catch(PDOException $e) {
+        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); // Mengatur mode error ke exception
+        return $conn; // Mengembalikan objek koneksi
+    } catch (PDOException $e) {
+        // Jika koneksi gagal, tampilkan pesan error
         die("Connection failed: " . $e->getMessage());
     }
 }
 
-// Check if user is logged in as admin
-if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
+// Memeriksa apakah pengguna telah login sebagai admin
+if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
+    // Jika bukan admin, arahkan ke halaman login
     header("Location: login.php");
     exit();
 }
 
-// Fetch specializations for the dropdown
+// Mendapatkan daftar spesialisasi dokter untuk dropdown
 try {
-    $conn = connectDB();
-    $spec_query = $conn->query("SELECT DISTINCT Spesialis FROM dokter");
-    $specializations = $spec_query->fetchAll(PDO::FETCH_COLUMN);
+    $conn = connectDB(); // Membuat koneksi ke database
+    $spec_query = $conn->query("SELECT DISTINCT Spesialis FROM dokter"); // Query untuk mengambil data spesialisasi unik
+    $specializations = $spec_query->fetchAll(PDO::FETCH_COLUMN); // Mengambil hasil query sebagai array
 } catch (PDOException $e) {
+    // Jika terjadi error saat mengambil data spesialisasi, simpan pesan error
     $error_message = "Error fetching specializations: " . $e->getMessage();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">

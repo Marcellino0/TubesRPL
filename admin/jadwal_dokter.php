@@ -1,16 +1,17 @@
 <?php
-session_start();
-require_once('../config/db_connection.php');
+session_start(); // Memulai sesi untuk menyimpan data pengguna
 
-// Get all specialists
-$query_specialists = "SELECT DISTINCT Spesialis FROM Dokter ORDER BY Spesialis";
-$specialists = $conn->query($query_specialists)->fetch_all(MYSQLI_ASSOC);
+require_once('../config/db_connection.php'); // Mengimpor file koneksi ke database
 
-// Get search parameters
-$search_doctor = isset($_GET['search_doctor']) ? $_GET['search_doctor'] : '';
-$selected_specialist = isset($_GET['specialist']) ? $_GET['specialist'] : '';
+// Mengambil semua spesialisasi dokter yang tersedia untuk dropdown atau filter
+$query_specialists = "SELECT DISTINCT Spesialis FROM Dokter ORDER BY Spesialis"; 
+$specialists = $conn->query($query_specialists)->fetch_all(MYSQLI_ASSOC); // Menyimpan hasil query dalam array asosiasi
 
-// Build the base query joining dokter and jadwal_dokter tables
+// Mendapatkan parameter pencarian dari URL (jika ada)
+$search_doctor = isset($_GET['search_doctor']) ? $_GET['search_doctor'] : ''; // Nama dokter untuk pencarian
+$selected_specialist = isset($_GET['specialist']) ? $_GET['specialist'] : ''; // Spesialis yang dipilih untuk filter
+
+// Membuat query dasar untuk mengambil data dokter dan jadwal dokter
 $query = "SELECT 
     d.ID_Dokter,
     d.Nama as nama_dokter,
@@ -22,54 +23,59 @@ $query = "SELECT
     jd.Status
 FROM dokter d
 LEFT JOIN jadwal_dokter jd ON d.ID_Dokter = jd.ID_Dokter
-WHERE jd.Status = 'Aktif'";
+WHERE jd.Status = 'Aktif'"; // Query untuk mengambil data dokter yang memiliki jadwal aktif
 
+// Menambahkan filter pencarian nama dokter jika ada
 if (!empty($search_doctor)) {
-    $query .= " AND d.Nama LIKE ?";
-}
-if (!empty($selected_specialist)) {
-    $query .= " AND d.Spesialis = ?";
+    $query .= " AND d.Nama LIKE ?"; // Mencocokkan nama dokter dengan string pencarian
 }
 
+// Menambahkan filter berdasarkan spesialisasi jika ada
+if (!empty($selected_specialist)) {
+    $query .= " AND d.Spesialis = ?"; // Memfilter berdasarkan spesialisasi yang dipilih
+}
+
+// Menyusun urutan berdasarkan nama dokter dan hari dalam minggu
 $query .= " ORDER BY d.Nama, FIELD(jd.Hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')";
 
-$stmt = $conn->prepare($query);
+$stmt = $conn->prepare($query); // Menyiapkan query untuk dieksekusi
 
-// Bind parameters if they exist
+// Mengikat parameter pencarian jika ada
 if (!empty($search_doctor) && !empty($selected_specialist)) {
-    $search_param = "%$search_doctor%";
-    $stmt->bind_param("ss", $search_param, $selected_specialist);
+    $search_param = "%$search_doctor%"; // Menambahkan wildcard untuk pencarian nama dokter
+    $stmt->bind_param("ss", $search_param, $selected_specialist); // Mengikat dua parameter (nama dokter dan spesialis)
 } elseif (!empty($search_doctor)) {
-    $search_param = "%$search_doctor%";
-    $stmt->bind_param("s", $search_param);
+    $search_param = "%$search_doctor%"; // Menambahkan wildcard untuk pencarian nama dokter
+    $stmt->bind_param("s", $search_param); // Mengikat parameter hanya untuk nama dokter
 } elseif (!empty($selected_specialist)) {
-    $stmt->bind_param("s", $selected_specialist);
+    $stmt->bind_param("s", $selected_specialist); // Mengikat parameter hanya untuk spesialisasi
 }
 
-$stmt->execute();
-$result = $stmt->get_result();
+$stmt->execute(); // Menjalankan query
+$result = $stmt->get_result(); // Mendapatkan hasil dari eksekusi query
 
-// Process the results to group schedules by doctor
-$schedules = [];
-while ($row = $result->fetch_assoc()) {
-    $doctorId = $row['ID_Dokter'];
-    if (!isset($schedules[$doctorId])) {
+// Memproses hasil untuk mengelompokkan jadwal berdasarkan dokter
+$schedules = []; // Menyimpan hasil jadwal dalam array
+while ($row = $result->fetch_assoc()) { // Iterasi melalui setiap baris hasil
+    $doctorId = $row['ID_Dokter']; // Mendapatkan ID dokter
+    if (!isset($schedules[$doctorId])) { // Jika dokter belum ada dalam array, tambahkan
         $schedules[$doctorId] = [
             'nama_dokter' => $row['nama_dokter'],
             'Spesialis' => $row['Spesialis'],
-            'jadwal' => []
+            'jadwal' => [] // Membuat array kosong untuk jadwal dokter
         ];
     }
-    if ($row['Hari']) {  // Only add if there's a schedule
+    if ($row['Hari']) {  // Menambahkan jadwal jika ada
         $schedules[$doctorId]['jadwal'][] = [
-            'hari' => $row['Hari'],
-            'jam_mulai' => $row['Jam_Mulai'],
-            'jam_selesai' => $row['Jam_Selesai'],
-            'kuota_online' => $row['Kuota_Online']
+            'hari' => $row['Hari'], // Hari jadwal
+            'jam_mulai' => $row['Jam_Mulai'], // Jam mulai
+            'jam_selesai' => $row['Jam_Selesai'], // Jam selesai
+            'kuota_online' => $row['Kuota_Online'] // Kuota online
         ];
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">

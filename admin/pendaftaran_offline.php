@@ -1,21 +1,23 @@
 <?php
-session_start();
-require_once('../config/db_connection.php');
+session_start(); // Memulai sesi untuk menyimpan data sesi pengguna
+require_once('../config/db_connection.php'); // Menyertakan file koneksi database
 
-// Check if user is logged in as admin
+// Memeriksa apakah pengguna sudah login sebagai admin
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
-    header("Location: login.php");
+    header("Location: login.php"); // Arahkan ke halaman login jika tidak login sebagai admin
     exit();
 }
 
 // Inside the form submission handler
+// Mengecek apakah form pendaftaran offline telah disubmit
 if (isset($_POST['register_offline'])) {
     try {
-        // Existing input validation...
+        // Validasi input untuk memastikan semua field telah terisi
         if (empty($_POST['nomor_rm']) || empty($_POST['id_jadwal'])) {
-            throw new Exception("Semua field harus diisi");
+            throw new Exception("Semua field harus diisi"); // Jika ada field yang kosong, lempar exception
         }
-        // Get patient registration type
+
+        // Mendapatkan informasi pasien berdasarkan nomor rekam medis
         $stmt = $conn->prepare("SELECT ID_Pasien, Registration_Type FROM Pasien WHERE Nomor_Rekam_Medis = ?");
         $stmt->bind_param("s", $_POST['nomor_rm']);
         $stmt->execute();
@@ -23,10 +25,10 @@ if (isset($_POST['register_offline'])) {
         $patient = $result->fetch_assoc();
 
         if (!$patient) {
-            throw new Exception("Nomor Rekam Medis tidak ditemukan");
+            throw new Exception("Nomor Rekam Medis tidak ditemukan"); // Jika pasien tidak ditemukan, lempar exception
         }
 
-        // Get latest queue number for today and schedule
+        // Mendapatkan nomor antrian terakhir untuk jadwal dan tanggal hari ini
         $stmt = $conn->prepare("
             SELECT MAX(No_Antrian) as last_number 
             FROM Pendaftaran 
@@ -37,69 +39,74 @@ if (isset($_POST['register_offline'])) {
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
-        $no_antrian = ($row['last_number'] ?? 0) + 1;
+        $no_antrian = ($row['last_number'] ?? 0) + 1; // Menentukan nomor antrian berikutnya
 
-        // Update quota based on registration type
+        // Update kuota berdasarkan tipe pendaftaran pasien (offline/online)
         if ($patient['Registration_Type'] === 'offline') {
             $quotaField = 'Kuota_Offline';
-            $verificationStatus = 'Terverifikasi';
+            $verificationStatus = 'Terverifikasi'; // Status verifikasi untuk pendaftaran offline
 
+            // Mengurangi kuota offline pada jadwal dokter
             $stmt = $conn->prepare("
                 UPDATE Jadwal_Dokter 
                 SET Kuota_Offline = Kuota_Offline - 1
-                WHERE ID_Jadwal = ?
-            ");
+                WHERE ID_Jadwal = ?");
         } else {
             $quotaField = 'Kuota_Online';
-            $verificationStatus = 'Belum Diverifikasi';
-            $no_antrian = 0; // Will be assigned after verification
+            $verificationStatus = 'Belum Diverifikasi'; // Status verifikasi untuk pendaftaran online
+            $no_antrian = 0; // Nomor antrian akan ditetapkan setelah diverifikasi
 
+            // Mengurangi kuota online pada jadwal dokter
             $stmt = $conn->prepare("
                 UPDATE Jadwal_Dokter 
                 SET Kuota_Online = Kuota_Online - 1
-                WHERE ID_Jadwal = ?
-            ");
+                WHERE ID_Jadwal = ?");
         }
         $stmt->bind_param("i", $_POST['id_jadwal']);
         $stmt->execute();
 
-        // Generate registration proof
+        // Membuat bukti reservasi (nomor reservasi unik berdasarkan tanggal dan nomor antrian)
         $bukti_reservasi = 'REG' . date('Ymd') . sprintf('%03d', $no_antrian);
 
-        // Insert registration with appropriate verification status
+        // Menyisipkan data pendaftaran ke dalam tabel Pendaftaran
         $stmt = $conn->prepare("
                 INSERT INTO Pendaftaran 
                 (ID_Pasien, ID_Jadwal, Waktu_Daftar, No_Antrian, Status, Bukti_Reservasi, Verifikasi, Tipe_Pendaftaran) 
                 VALUES (?, ?, NOW(), ?, 'Menunggu', ?, 'Terverifikasi', 'offline')");
 
+        // Mengikat parameter dan mengeksekusi query
         $stmt->bind_param(
             "iiis",
-            $patient['ID_Pasien'],
-            $_POST['id_jadwal'],
-            $no_antrian,
-            $bukti_reservasi
+            $patient['ID_Pasien'], // ID pasien
+            $_POST['id_jadwal'], // ID jadwal
+            $no_antrian, // Nomor antrian
+            $bukti_reservasi // Bukti reservasi
         );
 
+        // Memeriksa apakah eksekusi query berhasil
         if (!$stmt->execute()) {
-            throw new Exception("Error executing query: " . $stmt->error);
+            throw new Exception("Error executing query: " . $stmt->error); // Lempar exception jika gagal
         }
 
+        // Menentukan pesan sukses berdasarkan tipe pendaftaran
         $successMsg = $patient['Registration_Type'] === 'offline'
             ? "Pendaftaran berhasil dengan nomor antrian: " . $no_antrian . " dan bukti reservasi: " . $bukti_reservasi
             : "Pendaftaran berhasil. Mohon tunggu verifikasi admin untuk mendapatkan nomor antrian.";
 
-        $_SESSION['success_message'] = $successMsg;
-        header("Location: pendaftaran_offline.php");
+        $_SESSION['success_message'] = $successMsg; // Menyimpan pesan sukses dalam sesi
+        header("Location: pendaftaran_offline.php"); // Arahkan ke halaman pendaftaran offline
         exit();
 
     } catch (Exception $e) {
+        // Menyimpan pesan error jika terjadi pengecualian
         $_SESSION['error_message'] = "Gagal melakukan pendaftaran: " . $e->getMessage();
-        header("Location: pendaftaran_offline.php");
+        header("Location: pendaftaran_offline.php"); // Arahkan kembali ke halaman pendaftaran offline
         exit();
     }
 }
 
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">
