@@ -1,5 +1,5 @@
 <?php
-// Tidak perlu memulai session atau memuat file database pada halaman ini
+
 ?>
 
 <!DOCTYPE html>

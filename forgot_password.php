@@ -3,24 +3,22 @@ session_start();
 require_once(__DIR__ . '/config/db_connection.php');
 require_once(__DIR__ . '/includes/messages.php');
 
-// Initialize variables
+
 $email = '';
 $error = '';
 $success = false;
 
-// Process password reset request
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Sanitize and validate input
+
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
     
-    // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Format email tidak valid.";
     } elseif (empty($email)) {
         $error = "Silakan masukkan alamat email Anda.";
     } else {
         try {
-            // Prepare statement to check email
             $query = "SELECT ID_Pasien, Nama, Email FROM Pasien WHERE Email = ? LIMIT 1";
             $stmt = $conn->prepare($query);
             
@@ -35,11 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result->num_rows > 0) {
                 $patient = $result->fetch_assoc();
                 
-                // Generate secure reset token
                 $reset_token = bin2hex(random_bytes(32));
                 $token_expiry = date('Y-m-d H:i:s', strtotime('+1 hour'));
                 
-                // Prepare update statement for reset token
+                
                 $update_query = "UPDATE Pasien SET 
                     reset_token = ?, 
                     reset_token_expiry = ? 
@@ -53,32 +50,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update_stmt->bind_param("sss", $reset_token, $token_expiry, $email);
                 
                 if ($update_stmt->execute()) {
-                    // Construct reset link
+                   
                     $reset_link = "https://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token=" . $reset_token;
                     
-                    // TODO: Implement actual email sending
-                    // For now, we'll use a session message
                     $_SESSION['message'] = "Link reset password telah dikirim ke " . htmlspecialchars($email) . ". Berlaku selama 1 jam.";
                     
-                    // Set success flag
                     $success = true;
                     
-                    // Log the reset attempt (optional but recommended)
                     error_log("Password reset requested for email: " . $email);
                 } else {
                     $error = "Gagal memperbarui token. Silakan coba lagi.";
                 }
                 
-                // Close statements
+                
                 $update_stmt->close();
             } else {
                 $error = "Email tidak terdaftar dalam sistem.";
             }
             
-            // Close statement
+            
             $stmt->close();
         } catch (Exception $e) {
-            // Log the full error for debugging
+            
             error_log("Database error: " . $e->getMessage());
             $error = "Terjadi kesalahan sistem. Silakan hubungi administrator.";
         }
@@ -236,7 +229,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <?php 
-            // Display error messages
             if (!empty($error)): ?>
                 <div class="alert alert-error">
                     <?php echo htmlspecialchars($error); ?>
@@ -244,14 +236,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <?php 
-            // Show success message after successful token generation
             if ($success): ?>
                 <div class="alert alert-success">
                     <?php 
-                    // Show the session message if set
                     echo isset($_SESSION['message']) ? htmlspecialchars($_SESSION['message']) : 'Link reset password telah dikirim.'; 
                     
-                    // Clear the session message
                     unset($_SESSION['message']); 
                     ?>
                 </div>

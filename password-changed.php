@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Password Berhasil Diperbarui</title>
     <style>
-        /* Styling for the success page */
         * {
             margin: 0;
             padding: 0;

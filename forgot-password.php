@@ -3,46 +3,46 @@ session_start();
 require_once(__DIR__ . '/config/db_connection.php');
 require_once(__DIR__ . '/includes/messages.php');
 
-// Function to generate a random 6-digit OTP
+
 function generateOtp() {
-    return mt_rand(100000, 999999); // Generates a random 6-digit OTP
+    return mt_rand(100000, 999999); 
 }
 
-// Initialize error message
+
 $errorMessage = "";
 
-// Check if email is submitted
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $email = $_POST['email'];
 
-    // Check if email exists in the 'pasien' table
-    $query = "SELECT * FROM pasien WHERE Email = ?";  // Tabel 'pasien', kolom 'Email'
+    
+    $query = "SELECT * FROM pasien WHERE Email = ?";  
     $stmt = $conn->prepare($query);
     $stmt->bind_param('s', $email);
     $stmt->execute();
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-        // Email found
+        
         $user = $result->fetch_assoc();
 
-        // Generate OTP
+        
         $otp = generateOtp();
 
-        // Update the OTP without considering expiration
+        
         $updateQuery = "UPDATE pasien SET code = ? WHERE Email = ?";
         $stmt = $conn->prepare($updateQuery);
         $stmt->bind_param('ss', $otp, $email);
         $stmt->execute();
 
-        // Store OTP in session
-        $_SESSION['otp'] = $otp;  // Store OTP in session
+        
+        $_SESSION['otp'] = $otp;  
 
-        // Redirect to reset-code.php without OTP in the URL
+        
         header("Location: reset-code.php?email=$email");
         exit();
     } else {
-        // Email not found
+        
         $errorMessage = "Email tidak terdaftar. Silakan daftar terlebih dahulu.";
     }
 }
