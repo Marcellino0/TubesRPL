@@ -1,13 +1,13 @@
 <?php
 session_start();
 
-// Database connection configuration
+
 function connectDB()
 {
     $host = 'localhost';
     $dbname = 'PoliklinikX';
-    $username = 'root';  // Replace with your MySQL username
-    $password = '';      // Replace with your MySQL password
+    $username = 'root'; 
+    $password = '';      
 
     try {
         $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -18,7 +18,7 @@ function connectDB()
     }
 }
 
-// Check if user is logged in as admin
+
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
@@ -108,13 +108,13 @@ $today = date('Y-m-d');
                         </div>
                         <?php
                         try {
-                            // Count total appointments today
+                       
                             $stmt = $conn->prepare("SELECT COUNT(*) as total FROM Pendaftaran WHERE DATE(Waktu_Daftar) = :today");
                             $stmt->bindParam(':today', $today);
                             $stmt->execute();
                             $total_appointments = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-                            // Count completed payments today
+                     
                             $stmt = $conn->prepare("SELECT COUNT(*) as total FROM Pembayaran WHERE DATE(Tanggal) = :today AND Status = 'Lunas'");
                             $stmt->bindParam(':today', $today);
                             $stmt->execute();
@@ -163,7 +163,7 @@ $today = date('Y-m-d');
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php
                                     try {
-                                        // Konversi nama hari ke bahasa Indonesia
+                                    
                                         $dayNames = [
                                             'Sunday' => 'Minggu',
                                             'Monday' => 'Senin',
@@ -174,7 +174,7 @@ $today = date('Y-m-d');
                                             'Saturday' => 'Sabtu'
                                         ];
 
-                                        $day = $dayNames[date('l')]; // Konversi hari ini ke bahasa Indonesia
+                                        $day = $dayNames[date('l')];  
                                     
                                         $sql = "SELECT 
                                                 d.Nama, 
@@ -192,8 +192,8 @@ $today = date('Y-m-d');
                                                WHERE j.Hari = :day
                                                AND j.Status = 'Aktif'";
 
-                                        // Debug: Print values
-                                        echo "<!-- Current Day: " . $day . " -->"; // For debugging
+                                
+                                        echo "<!-- Current Day: " . $day . " -->"; 
                                     
                                         $stmt = $conn->prepare($sql);
                                         $stmt->bindParam(':today', $today);
@@ -217,7 +217,7 @@ $today = date('Y-m-d');
                                             }
                                         }
 
-                                        // Debug: Print query and parameters
+                                    
                                         echo "<!-- SQL: " . $sql . " -->";
                                         echo "<!-- Parameters: today=" . $today . ", day=" . $day . " -->";
 
@@ -240,5 +240,5 @@ $today = date('Y-m-d');
 </html>
 
 <?php
-$conn = null; // Close connection
+$conn = null; 
 ?>

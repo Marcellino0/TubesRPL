@@ -43,7 +43,7 @@ try {
     
     $schedules = [];
     while ($row = $result->fetch_assoc()) {
-        // Format times for display
+        
         $row['Jam_Mulai'] = date('H:i', strtotime($row['Jam_Mulai']));
         $row['Jam_Selesai'] = date('H:i', strtotime($row['Jam_Selesai']));
         $schedules[] = $row;

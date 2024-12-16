@@ -16,11 +16,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'];
     $action = $_POST['action'];
 
-    // Begin transaction
+
     sqlsrv_begin_transaction($conn);
 
     try {
-        // Check username uniqueness (excluding current doctor for updates)
+       
         $dokter_id = isset($_POST['dokter_id']) ? intval($_POST['dokter_id']) : 0;
         $sql = "SELECT ID_Dokter FROM Dokter 
                 WHERE Username = '$username' 
@@ -40,19 +40,19 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Hash password
             $hashed_password = hash('sha256', $password);
 
-            // Insert new doctor
+        
             $sql = "INSERT INTO Dokter (Nama, Spesialis, Username, Password)
                     VALUES ('$nama', '$spesialis', '$username', '$hashed_password')";
             
             $message = "Data dokter berhasil ditambahkan";
         } else {
-            // Update existing doctor
+         
             $sql = "UPDATE Dokter SET 
                     Nama = '$nama',
                     Spesialis = '$spesialis',
                     Username = '$username'";
             
-            // Only update password if a new one is provided
+       
             if(!empty($password)) {
                 $hashed_password = hash('sha256', $password);
                 $sql .= ", Password = '$hashed_password'";
@@ -68,12 +68,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Gagal menyimpan data dokter");
         }
 
-        // Commit transaction
         sqlsrv_commit($conn);
         $_SESSION['success'] = $message;
 
     } catch(Exception $e) {
-        // Rollback transaction on error
+       
         sqlsrv_rollback($conn);
         $_SESSION['error'] = $e->getMessage();
     }
@@ -81,11 +80,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 } elseif($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['action']) && $_GET['action'] == 'delete') {
     $dokter_id = intval($_GET['id']);
 
-    // Begin transaction
+
     sqlsrv_begin_transaction($conn);
 
     try {
-        // Check if doctor has any schedules
+     
         $sql = "SELECT COUNT(*) as jadwal FROM Jadwal_Dokter WHERE ID_Dokter = $dokter_id";
         $result = sqlsrv_query($conn, $sql);
         $row = sqlsrv_fetch_array($result);
@@ -94,7 +93,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Tidak dapat menghapus dokter yang masih memiliki jadwal");
         }
 
-        // Check if doctor has any past appointments
+      
         $sql = "SELECT COUNT(*) as pemeriksaan 
                 FROM Pemeriksaan pem
                 JOIN Pendaftaran p ON pem.ID_Pendaftaran = p.ID_Pendaftaran
@@ -116,12 +115,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Gagal menghapus data dokter");
         }
 
-        // Commit transaction
+  
         sqlsrv_commit($conn);
         $_SESSION['success'] = "Data dokter berhasil dihapus";
 
     } catch(Exception $e) {
-        // Rollback transaction on error
+      
         sqlsrv_rollback($conn);
         $_SESSION['error'] = $e->getMessage();
     }

@@ -2,7 +2,7 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if user is logged in and is a patient
+
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: index.php");
     exit();
@@ -18,7 +18,7 @@ if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
 }
 $patientId = $_SESSION['user_id'];
 
-// Get patient basic info
+// Mengambil informasi dasar pasien
 $stmt = $conn->prepare("SELECT Nama, Nomor_Rekam_Medis FROM Pasien WHERE ID_Pasien = ?");
 $stmt->bind_param("i", $patientId);
 $stmt->execute();
@@ -29,7 +29,7 @@ $results_per_page = 10;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $results_per_page;
 
-// Get total number of examinations
+// Menghitung total pemeriksaan 
 $stmt = $conn->prepare("
     SELECT COUNT(*) as total 
     FROM Pemeriksaan p
@@ -41,7 +41,7 @@ $stmt->execute();
 $total_results = $stmt->get_result()->fetch_assoc()['total'];
 $total_pages = ceil($total_results / $results_per_page);
 
-// Get examination history with pagination
+// Mengambil riwayat pemeriksaan dengan pagination
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pemeriksaan,

@@ -2,7 +2,7 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if user is logged in as doctor
+
 if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'dokter') {
     header("Location: ../login.php");
     exit();
@@ -10,7 +10,7 @@ if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'dokter') {
 
 $dokter_id = $_SESSION['user_id'];
 
-// Check if ID is provided
+
 if(!isset($_GET['id'])) {
     header("Location: doctor_dashboard.php");
     exit();
@@ -18,7 +18,6 @@ if(!isset($_GET['id'])) {
 
 $id_pendaftaran = $_GET['id'];
 
-// Get patient data including existing examination
 $sql = "SELECT p.*, pas.Nama, pas.Nomor_Rekam_Medis, rm.Tekanan_Darah, rm.Tinggi_Badan, 
         rm.Berat_Badan, rm.Suhu, rm.Riwayat_Penyakit, pe.Diagnosa, r.Resep_Obat
         FROM Pendaftaran p

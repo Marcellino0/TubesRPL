@@ -11,12 +11,12 @@ $conn = connectDB();
 $dokter_id = $_SESSION['user_id'];
 $pasien_id = $_GET['id'];
 
-// Get patient information
+
 $sql = "SELECT * FROM Pasien WHERE ID_Pasien = $pasien_id";
 $result = sqlsrv_query($conn, $sql);
 $patient = sqlsrv_fetch_array($result);
 
-// Get latest vital signs
+
 $sql = "SELECT TOP 1 * FROM Rekam_Medis 
         WHERE ID_Pasien = $pasien_id 
         ORDER BY Tanggal DESC";

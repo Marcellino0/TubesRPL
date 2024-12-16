@@ -2,7 +2,7 @@
 require_once('../config/db_connection.php');
 
 header('Content-Type: application/json');
-
+// Cek apakah parameter ID dokter tersedia
 if (!isset($_GET['doctor_id'])) {
     http_response_code(400);
     echo json_encode(['error' => 'Doctor ID is required']);
@@ -13,6 +13,7 @@ $doctorId = $_GET['doctor_id'];
 $registrationDay = $_GET['registration_day'] ?? 'today';
 
 try {
+    // Query untuk mengambil jadwal dokter beserta kuota pendaftaran yang terpakai
     $query = "
         SELECT 
             jd.*,

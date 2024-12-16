@@ -3,7 +3,7 @@ session_start();
 require_once(__DIR__ . '/config/db_connection.php');
 require_once(__DIR__ . '/includes/messages.php');
 
-// Function to check and get active session
+
 function getActiveUserSession() {
     if (isset($_SESSION['user_id']) && isset($_SESSION['user_type'])) {
         return [
@@ -14,7 +14,7 @@ function getActiveUserSession() {
     return null;
 }
 
-// Function to validate session against database
+
 function validateUserSession($userId, $userType, $conn) {
     $columnName = '';
     $table = '';
@@ -53,13 +53,13 @@ function validateUserSession($userId, $userType, $conn) {
     }
 }
 
-// Check for active session
+
 $activeSession = getActiveUserSession();
 
 if ($activeSession) {
-    // Validate session against database
+ 
     if (validateUserSession($activeSession['user_id'], $activeSession['user_type'], $conn)) {
-        // Redirect to appropriate dashboard
+     
         switch ($activeSession['user_type']) {
             case 'admin':
                 header("Location: admin/admin_dashboard.php");
@@ -76,7 +76,7 @@ if ($activeSession) {
         }
         exit();
     } else {
-        // Invalid session - clear and show login
+       
         session_destroy();
     }
 }
@@ -270,19 +270,22 @@ if ($activeSession) {
         }
 
         .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            color: white;
-        }
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
 
-        .alert-success {
-            background-color: #2ecc71;
-        }
+.alert-error {
+    color: #5a1e1e;
+    background-color: 	#FF0000;
+    border: 1px solid 	#FF0000;
+}
 
-        .alert-error {
-            background-color: #e74c3c;
-        }
+.alert-success {
+    color: #065f46;
+    background-color: #ecfdf5;
+    border: 1px solid #d1fae5;
+}
 
         @media (max-width: 768px) {
             .container {
@@ -383,7 +386,7 @@ if ($activeSession) {
             patientLinks.style.display = userType === 'pasien' ? 'block' : 'none';
         }
 
-        // Set initial state on page load
+       
         document.addEventListener('DOMContentLoaded', function() {
             const userType = document.getElementById('user_type');
             updateFormAction(userType.value);

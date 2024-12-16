@@ -1,12 +1,12 @@
 <?php
 session_start();
 
-// Database connection configuration
+
 function connectDB() {
     $host = 'localhost';
     $dbname = 'PoliklinikX';
-    $username = 'root';  // Replace with your MySQL username
-    $password = '';      // Replace with your MySQL password
+    $username = 'root';  
+    $password = '';      
 
     try {
         $conn = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
@@ -17,13 +17,13 @@ function connectDB() {
     }
 }
 
-// Check if user is logged in as admin
+
 if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
-// Fetch specializations for the dropdown
+
 try {
     $conn = connectDB();
     $spec_query = $conn->query("SELECT DISTINCT Spesialis FROM dokter");
@@ -136,18 +136,18 @@ try {
     </div>
 
     <script>
-    // Function to handle specialization change
+ 
     document.getElementById('specialization').addEventListener('change', function() {
         const spesialis = this.value;
         const doctorSelect = document.getElementById('doctor');
         
-        // Clear existing options
+     
         doctorSelect.innerHTML = '<option value="">Pilih Dokter</option>';
         document.getElementById('schedule').innerHTML = '<option value="">Pilih Jadwal</option>';
         
         if (!spesialis) return;
         
-        // Fetch doctors for selected specialization
+
         fetch(`get_doctors.php?spesialis=${encodeURIComponent(spesialis)}`)
             .then(response => response.json())
             .then(doctors => {
@@ -161,7 +161,7 @@ try {
             .catch(error => console.error('Error fetching doctors:', error));
     });
 
-    // Function to handle doctor and date selection
+
     function updateSchedules() {
         const doctorId = document.getElementById('doctor').value;
         const registrationDate = document.getElementById('registration_date').value;
@@ -169,10 +169,10 @@ try {
         
         if (!doctorId || !registrationDate) return;
         
-        // Clear existing options
+   
         scheduleSelect.innerHTML = '<option value="">Memuat jadwal...</option>';
         
-        // Fetch schedules for selected doctor
+
         fetch(`get_schedule.php?doctor_id=${encodeURIComponent(doctorId)}&registration_day=${encodeURIComponent(registrationDate)}`)
             .then(response => response.json())
             .then(schedules => {
@@ -182,21 +182,21 @@ try {
                     const option = document.createElement('option');
                     option.value = schedule.ID_Jadwal;
                     
-                    // Calculate available quotas
+              
                     const isToday = registrationDate === new Date().toISOString().split('T')[0];
                     const usedQuota = isToday ? schedule.used_quota_today : schedule.used_quota_tomorrow;
                     
-                    // Calculate available slots for both online and offline
+                 
                     const availableOnline = schedule.Kuota_Online - usedQuota;
                     const availableOffline = schedule.Kuota_Offline - usedQuota;
                     const totalAvailable = availableOnline + availableOffline;
                     
-                    // Format the schedule display
+          
                     const scheduleText = `${schedule.Hari}: ${schedule.Jam_Mulai} - ${schedule.Jam_Selesai} 
                         ( Offline: ${schedule.Kuota_Offline})`;
                     option.textContent = scheduleText;
                     
-                    // Disable option if no quota available
+             
                     if (totalAvailable <= 0) {
                         option.disabled = true;
                         option.textContent += ' - PENUH';
@@ -208,11 +208,11 @@ try {
             .catch(error => console.error('Error fetching schedules:', error));
     }
 
-    // Add event listeners for doctor and date selection
+
     document.getElementById('doctor').addEventListener('change', updateSchedules);
     document.getElementById('registration_date').addEventListener('change', updateSchedules);
 
-    // Set minimum date for registration to today
+
     const registrationDateInput = document.getElementById('registration_date');
     const today = new Date().toISOString().split('T')[0];
     registrationDateInput.min = today;
@@ -263,5 +263,5 @@ try {
 </html>
 
 <?php
-$conn = null; // Close connection
+$conn = null; 
 ?>

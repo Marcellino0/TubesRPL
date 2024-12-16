@@ -9,13 +9,13 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
 
 $patientId = $_SESSION['user_id'];
 
-// Fetch patient data for sidebar
+// Mengambil data pasien untuk sidebar
 $stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
 $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $patientData = $stmt->get_result()->fetch_assoc();
 
-// Fetch registrations with verification status
+// Mengambil data pendaftaran beserta status verifikasi
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pendaftaran,

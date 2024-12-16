@@ -10,10 +10,10 @@ if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'dokter') {
 $dokter_id = $_SESSION['user_id'];
 $today = date('Y-m-d');
 
-// Initialize search variable
+
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 
-// Build where clause for search
+
 $where_clause = '';
 if($search) {
     $where_clause = "AND (pas.Nama LIKE ? OR pas.Nomor_Rekam_Medis LIKE ?)";
@@ -168,7 +168,7 @@ if($search) {
     </div>
 
     <script>
-        // Auto refresh setiap 30 detik jika tidak ada pencarian
+        
         <?php if(!$search) { ?>
         setTimeout(function() {
             location.reload();

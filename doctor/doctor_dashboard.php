@@ -11,7 +11,7 @@ $dokter_id = $_SESSION['user_id'];
 $today = date('Y-m-d');
 $day = date('l');
 
-// Get doctor stats for verified patients only
+
 $stmt = $conn->prepare("SELECT COUNT(*) as total FROM Pendaftaran p 
                        JOIN Jadwal_Dokter j ON p.ID_Jadwal = j.ID_Jadwal 
                        WHERE j.ID_Dokter = ? 
@@ -120,7 +120,8 @@ $quota_result = $stmt->get_result()->fetch_assoc();
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php
-                                // Query untuk menampilkan hanya pasien yang sudah terverifikasi
+                                
+                
                                 $sql = "SELECT p.No_Antrian, pas.Nama, pas.Nomor_Rekam_Medis, p.Status, p.ID_Pendaftaran
                                        FROM Pendaftaran p
                                        JOIN Jadwal_Dokter j ON p.ID_Jadwal = j.ID_Jadwal

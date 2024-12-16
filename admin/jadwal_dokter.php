@@ -2,15 +2,14 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Get all specialists
+
 $query_specialists = "SELECT DISTINCT Spesialis FROM Dokter ORDER BY Spesialis";
 $specialists = $conn->query($query_specialists)->fetch_all(MYSQLI_ASSOC);
 
-// Get search parameters
+
 $search_doctor = isset($_GET['search_doctor']) ? $_GET['search_doctor'] : '';
 $selected_specialist = isset($_GET['specialist']) ? $_GET['specialist'] : '';
 
-// Build the base query joining dokter and jadwal_dokter tables
 $query = "SELECT 
     d.ID_Dokter,
     d.Nama as nama_dokter,
@@ -35,7 +34,6 @@ $query .= " ORDER BY d.Nama, FIELD(jd.Hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 
 
 $stmt = $conn->prepare($query);
 
-// Bind parameters if they exist
 if (!empty($search_doctor) && !empty($selected_specialist)) {
     $search_param = "%$search_doctor%";
     $stmt->bind_param("ss", $search_param, $selected_specialist);
@@ -49,7 +47,6 @@ if (!empty($search_doctor) && !empty($selected_specialist)) {
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Process the results to group schedules by doctor
 $schedules = [];
 while ($row = $result->fetch_assoc()) {
     $doctorId = $row['ID_Dokter'];
@@ -60,7 +57,7 @@ while ($row = $result->fetch_assoc()) {
             'jadwal' => []
         ];
     }
-    if ($row['Hari']) {  // Only add if there's a schedule
+    if ($row['Hari']) {  
         $schedules[$doctorId]['jadwal'][] = [
             'hari' => $row['Hari'],
             'jam_mulai' => $row['Jam_Mulai'],

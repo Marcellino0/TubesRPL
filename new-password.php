@@ -5,28 +5,28 @@ require_once(__DIR__ . '/config/db_connection.php');
 $errorMessage = "";
 $successMessage = "";
 
-// Check if the email parameter is provided
+
 if (isset($_GET['email'])) {
     $email = $_GET['email'];
 
-    // Process new password form submission
+ 
     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $newPassword = $_POST['new_password'];
         $confirmPassword = $_POST['confirm_password'];
 
-        // Validate passwords
+  
         if (strlen($newPassword) < 8) {
             $errorMessage = "Password harus lebih dari 8 karakter.";
         } elseif ($newPassword !== $confirmPassword) {
             $errorMessage = "Password baru dan konfirmasi password tidak cocok.";
         } else {
-            // Update the password in the database
+            
             $updatePasswordQuery = "UPDATE pasien SET Password = ? WHERE Email = ?";
             $stmt = $conn->prepare($updatePasswordQuery);
             $stmt->bind_param('ss', password_hash($newPassword, PASSWORD_DEFAULT), $email);
             $stmt->execute();
 
-            // Redirect to password-changed.php after success
+           
             header("Location: password-changed.php");
             exit();
         }

@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-// Database connection configuration
+
 function connectDB()
 {
     $host = 'localhost';
@@ -18,7 +18,7 @@ function connectDB()
     }
 }
 
-// Check if user is logged in as admin
+
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
@@ -26,7 +26,7 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
 
 $conn = connectDB();
 
-// Handle Delete Action
+
 if (isset($_POST['delete_patient'])) {
     try {
         $nik = $_POST['nik'];
@@ -40,7 +40,7 @@ if (isset($_POST['delete_patient'])) {
     }
 }
 
-// Handle Edit Action
+
 if (isset($_POST['edit_patient'])) {
     try {
         $stmt = $conn->prepare("UPDATE Pasien SET Nama = ?, Tanggal_Lahir = ?, Jenis_Kelamin = ? WHERE NIK = ?");
@@ -70,14 +70,14 @@ if (isset($_POST['add_patient'])) {
             throw new Exception("NIK harus 16 digit angka");
         }
 
-        // Check if NIK exists before starting transaction
+        
         $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ?");
         $stmt->execute([$_POST['nik']]);
         if ($stmt->fetchColumn() > 0) {
             throw new Exception("NIK sudah terdaftar dalam sistem");
         }
 
-        // Start transaction
+    
         $conn->beginTransaction();
 
         try {
@@ -92,12 +92,12 @@ if (isset($_POST['add_patient'])) {
             $next_num = ($result['max_num'] ?? 0) + 1;
             $nomor_rm = sprintf("RMOffline-%s-%05d", $year, $next_num);
 
-            // Calculate age
+          
             $birthDate = new DateTime($_POST['tanggal_lahir']);
             $today = new DateTime();
             $age = $today->diff($birthDate)->y;
 
-            // Insert new patient
+           
             $stmt = $conn->prepare("INSERT INTO Pasien 
                 (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur, Registration_Type) 
                 VALUES (?, ?, ?, ?, ?, ?, 'offline')");
@@ -111,22 +111,22 @@ if (isset($_POST['add_patient'])) {
                 $age
             ]);
 
-            // Commit transaction
+          
             $conn->commit();
             $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
             header("Location: manage_patients.php");
             exit();
 
         } catch (PDOException $e) {
-            // Only rollback if we have an active transaction
+            
             if ($conn->inTransaction()) {
                 $conn->rollBack();
             }
-            throw $e; // Re-throw to be caught by outer catch block
+            throw $e; 
         }
 
     } catch (PDOException $e) {
-        if ($e->getCode() == 23000) { // SQL error code for duplicate entry
+        if ($e->getCode() == 23000) { 
             $_SESSION['error_message'] = "NIK sudah terdaftar dalam sistem";
         } else {
             $_SESSION['error_message'] = "Database Error: " . $e->getMessage();
@@ -437,7 +437,7 @@ if (isset($_POST['add_patient'])) {
             return confirm('Apakah Anda yakin ingin menghapus data pasien ini?');
         }
 
-        // Close modal when clicking outside
+       
         window.onclick = function (event) {
             if (event.target.classList.contains('fixed')) {
                 event.target.classList.add('hidden');
@@ -449,5 +449,5 @@ if (isset($_POST['add_patient'])) {
 </html>
 
 <?php
-$conn = null; // Close connection
+$conn = null; 
 ?>

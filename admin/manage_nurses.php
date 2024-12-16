@@ -10,9 +10,9 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
 
 $message = '';
 $messageType = '';
-$editData = null; // Initialize $editData as null by default
+$editData = null; 
 
-// Handle Edit - Ambil data untuk form edit
+
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
     $perawatId = $_GET['id'];
     $stmt = $conn->prepare("SELECT * FROM Perawat WHERE ID_Perawat = ?");
@@ -22,7 +22,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
     $editData = $result->fetch_assoc();
 }
 
-// Handle form submission untuk Tambah/Edit Perawat
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $perawatId = $_POST['perawat_id'] ?? null;
     $nama = $_POST['nama'];
@@ -52,9 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $message = $perawatId ? "Data perawat berhasil diperbarui." : "Perawat baru berhasil ditambahkan.";
             $messageType = "success";
-            // Reset edit data after successful submission
+            
             $editData = null;
-            // Redirect to clear the form
+          
             header("Location: " . $_SERVER['PHP_SELF'] . "?message=" . urlencode($message) . "&type=" . urlencode($messageType));
             exit();
         } else {
@@ -78,12 +78,12 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
         $messageType = "error";
     }
     
-    // Redirect after delete to prevent resubmission
+   
     header("Location: " . $_SERVER['PHP_SELF'] . "?message=" . urlencode($message) . "&type=" . urlencode($messageType));
     exit();
 }
 
-// Handle messages from redirects
+
 if (isset($_GET['message']) && isset($_GET['type'])) {
     $message = $_GET['message'];
     $messageType = $_GET['type'];

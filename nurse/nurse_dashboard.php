@@ -2,13 +2,13 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if nurse is logged in
+
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'perawat') {
     header("Location: ../index.php");
     exit();
 }
 
-// Function to get pending examinations// Function to get pending examinations
+// Fungsi untuk mengambil daftar pasien yang masih menunggu pemeriksaan hari ini
 function getPendingExaminations($conn)
 {
     $sql = "SELECT p.ID_Pendaftaran, ps.ID_Pasien, ps.Nama as nama_pasien, ps.Nomor_Rekam_Medis, 
@@ -32,7 +32,7 @@ function getPendingExaminations($conn)
     return $result;
 }
 
-// Handle form submission for medical record update
+// Proses form untuk memperbarui rekam medis
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
     $id_rekam = $_POST['id_rekam'];
     $tekanan_darah = $_POST['tekanan_darah'];

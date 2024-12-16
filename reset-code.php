@@ -6,27 +6,27 @@ require_once(__DIR__ . '/includes/messages.php');
 $errorMessage = "";
 $successMessage = "";
 
-// Check if form is submitted
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = $_GET['email'];  // Get email from URL
+    $email = $_GET['email'];  
     $inputCode = $_POST['reset_code'];
 
-    // Retrieve stored OTP from session
+   
     $storedOtp = $_SESSION['otp'];
 
     if ($inputCode == $storedOtp) {
-        // OTP matches, allow user to reset password
+     
         $successMessage = "Kode reset benar. Silakan masukkan password baru.";
 
-        // Redirect to new-password.php after successful OTP verification
+        
         header("Location: new-password.php?email=" . urlencode($email));
-        exit(); // Don't forget to stop further execution after redirect
+        exit(); 
     } else {
         $errorMessage = "Kode reset salah. Silakan coba lagi.";
     }
 }
 
-// Check if OTP exists in session for notification
+
 $otpMessage = isset($_SESSION['otp']) ? "OTP Anda adalah: " . $_SESSION['otp'] : "";
 ?>
 

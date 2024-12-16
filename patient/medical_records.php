@@ -2,19 +2,18 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if user is logged in and is a patient
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: index.php");
     exit();
 }
 
-// Get patient data
+
 $patientId = $_SESSION['user_id'];
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $recordsPerPage = 10;
 $offset = ($page - 1) * $recordsPerPage;
 
-// Get total records count for pagination
+// Menghitung total record untuk pagination
 $stmt = $conn->prepare("
     SELECT COUNT(DISTINCT rm.ID_Rekam) as total 
     FROM Rekam_Medis rm 
@@ -25,7 +24,7 @@ $stmt->execute();
 $totalRecords = $stmt->get_result()->fetch_assoc()['total'];
 $totalPages = ceil($totalRecords / $recordsPerPage);
 
-// Get detailed medical records with pagination
+// Mengambil detail rekam medis dengan pagination
 $stmt = $conn->prepare("
     SELECT 
         rm.*,
@@ -48,7 +47,7 @@ $stmt->bind_param("iii", $patientId, $recordsPerPage, $offset);
 $stmt->execute();
 $medicalRecords = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get patient basic info
+// Mengambil informasi dasar pasien
 $stmt = $conn->prepare("SELECT Nama, Nomor_Rekam_Medis FROM Pasien WHERE ID_Pasien = ?");
 $stmt->bind_param("i", $patientId);
 $stmt->execute();

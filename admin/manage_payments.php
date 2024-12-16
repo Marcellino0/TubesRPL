@@ -2,7 +2,7 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if user is logged in as admin
+
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
@@ -11,16 +11,16 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
 $message = '';
 $messageType = '';
 
-// Handle Add Payment
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $namaPasien = isset($_POST['nama_pasien']) ? $_POST['nama_pasien'] : '';
     $dokterId = $_POST['dokter_id'];
     $jumlah = $_POST['jumlah'];
     $metode = $_POST['metode'];
     $status = isset($_POST['status']) ? 'Lunas' : 'Belum Lunas';
-    $nomorRm = $_POST['nomor_rm']; // Add medical record number
+    $nomorRm = $_POST['nomor_rm']; 
 
-    // Get ID_Pendaftaran based on nama pasien and medical record number
+    
     $stmt = $conn->prepare("
         SELECT pd.ID_Pendaftaran
         FROM Pendaftaran pd
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($pendaftaran) {
         $pendaftaranId = $pendaftaran['ID_Pendaftaran'];
 
-        // Insert payment data into the database
+    
         $stmt = $conn->prepare("INSERT INTO Pembayaran (ID_Pendaftaran, Tanggal, Jumlah, Metode, Status) VALUES (?, NOW(), ?, ?, ?)");
         $stmt->bind_param("idss", $pendaftaranId, $jumlah, $metode, $status);
 
@@ -87,7 +87,7 @@ if (isset($_GET['delete'])) {
         $messageType = "error";
     }
 }
-// Retrieve payment data with medical record number
+
 $paymentQuery = $conn->query("
     SELECT p.ID_Pembayaran, pa.Nama AS Nama_Pasien, pa.Nomor_Rekam_Medis,
            d.Nama AS Nama_Dokter, d.Spesialis, p.Tanggal, p.Jumlah, p.Metode, p.Status
@@ -354,7 +354,7 @@ $paymentQuery = $conn->query("
 </div>
 
 <script>
-    // Update hidden medical record number field when patient is selected
+
     document.getElementById('nama_pasien').addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         document.getElementById('nomor_rm').value = selectedOption.getAttribute('data-rm');
@@ -379,7 +379,7 @@ function openModal(type, id = null) {
         document.getElementById('editModal').classList.remove('hidden');
         if (id) {
             document.getElementById('edit_payment_id').value = id;
-            // Fetch payment data and populate the form
+           
             fetch(`?id=${id}`)
                 .then(response => response.json())
                 .then(data => {
@@ -401,7 +401,7 @@ function confirmDelete() {
     return confirm('Apakah Anda yakin ingin menghapus data pembayaran ini?');
 }
 
-// Close modal when clicking outside
+
 window.onclick = function(event) {
     if (event.target.classList.contains('fixed')) {
         event.target.classList.add('hidden');

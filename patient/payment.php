@@ -6,6 +6,7 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     header("Location: index.php");
     exit();
 }
+// Mengambil nama pasien yang sedang login
 $patientName = "Pasien";
 if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
     $stmt = $conn->prepare("SELECT Nama FROM Pasien WHERE ID_Pasien = ?");
@@ -14,7 +15,8 @@ if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
     $result = $stmt->get_result()->fetch_assoc();
     $patientName = $result['Nama'] ?? "Pasien";
 }
-// Get pending payments
+
+// Mengambil data riwayat pembayaran
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pembayaran,
@@ -38,16 +40,16 @@ $stmt->bind_param("i", $_SESSION['user_id']);
 $stmt->execute();
 $pendingPayments = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get payment methods
+// Mengambil data metode pembayaran yang aktif
 $paymentMethods = $conn->query("SELECT * FROM Metode_Pembayaran WHERE Status = 'Aktif'")->fetch_all(MYSQLI_ASSOC);
 
-// Process payment submission
+// Memproses pengajuan pembayaran
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $paymentId = $_POST['payment_id'];
     $methodId = $_POST['payment_method'];
     $referenceNumber = $_POST['reference_number'];
     
-    // Handle file upload
+ 
     $uploadDir = '../uploads/bukti_pembayaran/';
     $fileName = '';
     
@@ -56,11 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         move_uploaded_file($_FILES['payment_proof']['tmp_name'], $uploadDir . $fileName);
     }
     
-    // Begin transaction
+    
     $conn->begin_transaction();
     
     try {
-        // Insert payment detail
+        // Menyimpan detail pembayaran
         $stmt = $conn->prepare("
             INSERT INTO Detail_Pembayaran (
                 ID_Pembayaran, 

@@ -2,7 +2,7 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if user is logged in as doctor
+
 if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'dokter') {
     header("Location: ../login.php");
     exit();
@@ -10,7 +10,7 @@ if(!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'dokter') {
 
 $dokter_id = $_SESSION['user_id'];
 
-// Initialize search variables
+
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $date_filter = isset($_GET['date_filter']) ? $_GET['date_filter'] : '';
 $search_param = "%".$search."%";
@@ -49,7 +49,7 @@ if($search && $date_filter) {
 $result = $stmt->get_result();
 if($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        // Display the medical record data
+       
         echo "ID_Rekam: " . $row['ID_Rekam'] . "<br>";
         echo "Nama Pasien: " . $row['Nama'] . "<br>";
         echo "Nomor Rekam Medis: " . $row['Nomor_Rekam_Medis'] . "<br>";
@@ -65,7 +65,6 @@ if($result->num_rows > 0) {
     }
 } 
 
-// Modified query to correctly show all medical records
 $sql = "SELECT rm.*, pas.Nama, pas.Nomor_Rekam_Medis,
         pm.Waktu_Periksa, pm.Diagnosa, r.Resep_Obat
         FROM Rekam_Medis rm
@@ -87,7 +86,7 @@ $sql .= " ORDER BY rm.Tanggal DESC, rm.ID_Rekam DESC";
 
 $stmt = $conn->prepare($sql);
 
-// Bind parameters based on filters
+
 if($search && $date_filter) {
     $stmt->bind_param("sss", $search_param, $search_param, $date_filter);
 } elseif($search) {
