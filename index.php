@@ -178,7 +178,7 @@
             <h1>Pelayanan Kesehatan 
             <span style="color: #28a745;">Poliklinik X</span></h1>
             <p>
-                Kehidupan adalah kurnia Tuhan YME dan kesehatan merupakan hak semua orang, dengan ini Poliklinik X hadir untuk memberikan pelayanan kesehatan bagi masyarakat dengan mutu pelayanan yang baik. Serta dengan kesetiaan dan kesiapsediaan untuk terus melakukan pengembangan pelayanan kesehatan demi keselamatan dan kesembuhan pasien.
+                Poliklinik X hadir untuk memberikan pelayanan kesehatan bagi masyarakat dengan mutu pelayanan yang baik. Serta dengan kesetiaan dan kesiapsediaan untuk terus melakukan pengembangan pelayanan kesehatan demi keselamatan dan kesembuhan pasien.
             </p>
             <br>
             <p>Apabila belum mempunyai akun bisa klik tombol register di bawah ini</p>
