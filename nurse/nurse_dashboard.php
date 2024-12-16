@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
                    Suhu = ?, 
                    Riwayat_Penyakit = ?
                    WHERE ID_Rekam = ?";
-    
+
     $stmt = $conn->prepare($sql_update);
     $stmt->bind_param(
         "sdddsi",
@@ -139,12 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
     $berat_badan = $_POST['berat_badan'];
     $suhu = $_POST['suhu'];
     $riwayat = $_POST['riwayat_penyakit'];
-    
+
     // Insert new rekam medis
     $sql_insert = "INSERT INTO rekam_medis (ID_Pasien, Tekanan_Darah, Tinggi_Badan, 
                    Berat_Badan, Suhu, Riwayat_Penyakit, Tanggal) 
                    VALUES (?, ?, ?, ?, ?, ?, CURDATE())";
-    
+
     $stmt = $conn->prepare($sql_insert);
     $stmt->bind_param(
         "isddds",
@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
 
     if ($stmt->execute()) {
         $id_rekam = $conn->insert_id;
-        
+
         // Handle file uploads
         if (!empty($_FILES['dokumen']['name'][0])) {
             $upload_dir = __DIR__ . '/uploads/' . $id_pasien . '/';
@@ -288,22 +288,28 @@ $pendingExaminations = getPendingExaminations($conn);
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         No. Antrian
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Nama Pasien
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         No. Rekam Medis
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Dokter
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Tanggal Daftar
                                     </th>
-                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th
+                                        class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Aksi
                                     </th>
                                 </tr>
@@ -328,13 +334,17 @@ $pendingExaminations = getPendingExaminations($conn);
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <?php if (!$row['rekam_exists']): ?>
-                                                <button type="button" class="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm"
-                                                        data-bs-toggle="modal" data-bs-target="#recordModal<?php echo $row['ID_Pendaftaran']; ?>">
+                                                <button type="button"
+                                                    class="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md text-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#recordModal<?php echo $row['ID_Pendaftaran']; ?>">
                                                     Input Pemeriksaan
                                                 </button>
                                             <?php else: ?>
-                                                <button type="button" class="text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md text-sm"
-                                                        data-bs-toggle="modal" data-bs-target="#updateModal<?php echo $row['ID_Pendaftaran']; ?>">
+                                                <button type="button"
+                                                    class="text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md text-sm"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#updateModal<?php echo $row['ID_Pendaftaran']; ?>">
                                                     Update Pemeriksaan
                                                 </button>
                                             <?php endif; ?>
@@ -393,13 +403,14 @@ $pendingExaminations = getPendingExaminations($conn);
                                 <textarea class="form-control" name="riwayat_penyakit" rows="3" required></textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Upload Dokumen</label>
-                                <input type="file" name="dokumen[]" class="form-control" multiple required>
+                                <label class="form-label">Upload Dokumen (Opsional)</label>
+                                <input type="file" name="dokumen[]" class="form-control" multiple>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Jenis Dokumen</label>
-                                <select name="jenis_dokumen[]" class="form-select" required>
+                                <select name="jenis_dokumen[]" class="form-select">
+                                    <option value="">Pilih Jenis</option>
                                     <option value="Hasil Lab">Hasil Lab</option>
                                     <option value="Resep">Resep</option>
                                     <option value="Rujukan">Rujukan</option>
@@ -407,10 +418,10 @@ $pendingExaminations = getPendingExaminations($conn);
                                 </select>
                             </div>
 
-                            <div class="mb-3">
+                            <!-- <div class="mb-3">
                                 <label class="form-label">Keterangan</label>
                                 <textarea name="keterangan_dokumen[]" class="form-control" rows="2"></textarea>
-                            </div>
+                            </div> -->
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -421,83 +432,80 @@ $pendingExaminations = getPendingExaminations($conn);
             </div>
         </div>
         <!-- Modal untuk update pemeriksaan -->
-    <div class="modal fade" id="updateModal<?php echo $row['ID_Pendaftaran']; ?>" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Update Pemeriksaan</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" enctype="multipart/form-data">
-                    <div class="modal-body">
-                        <input type="hidden" name="id_pasien" value="<?php echo $row['ID_Pasien']; ?>">
-                        <input type="hidden" name="id_rekam" value="<?php echo $row['rekam_exists']; ?>">
+        <div class="modal fade" id="updateModal<?php echo $row['ID_Pendaftaran']; ?>" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Update Pemeriksaan</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="modal-body">
+                            <input type="hidden" name="id_pasien" value="<?php echo $row['ID_Pasien']; ?>">
+                            <input type="hidden" name="id_rekam" value="<?php echo $row['rekam_exists']; ?>">
 
-                        <div class="mb-3">
-                            <label class="form-label">Tekanan Darah</label>
-                            <input type="text" class="form-control" name="tekanan_darah" 
-                                   value="<?php echo htmlspecialchars($row['Tekanan_Darah'] ?? ''); ?>" 
-                                   required placeholder="Contoh: 120/80">
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tekanan Darah</label>
+                                <input type="text" class="form-control" name="tekanan_darah"
+                                    value="<?php echo htmlspecialchars($row['Tekanan_Darah'] ?? ''); ?>" required
+                                    placeholder="Contoh: 120/80">
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Tinggi Badan (cm)</label>
-                            <input type="number" step="0.1" class="form-control" name="tinggi_badan" 
-                                   value="<?php echo htmlspecialchars($row['Tinggi_Badan'] ?? ''); ?>" 
-                                   required>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Tinggi Badan (cm)</label>
+                                <input type="number" step="0.1" class="form-control" name="tinggi_badan"
+                                    value="<?php echo htmlspecialchars($row['Tinggi_Badan'] ?? ''); ?>" required>
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Berat Badan (kg)</label>
-                            <input type="number" step="0.1" class="form-control" name="berat_badan" 
-                                   value="<?php echo htmlspecialchars($row['Berat_Badan'] ?? ''); ?>" 
-                                   required>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Berat Badan (kg)</label>
+                                <input type="number" step="0.1" class="form-control" name="berat_badan"
+                                    value="<?php echo htmlspecialchars($row['Berat_Badan'] ?? ''); ?>" required>
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Suhu Badan (°C)</label>
-                            <input type="number" step="0.1" class="form-control" name="suhu" 
-                                   value="<?php echo htmlspecialchars($row['Suhu'] ?? ''); ?>" 
-                                   required>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Suhu Badan (°C)</label>
+                                <input type="number" step="0.1" class="form-control" name="suhu"
+                                    value="<?php echo htmlspecialchars($row['Suhu'] ?? ''); ?>" required>
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Keluhan/Riwayat Penyakit</label>
-                            <textarea class="form-control" name="riwayat_penyakit" rows="3" required>
-                                <?php echo htmlspecialchars($row['Riwayat_Penyakit'] ?? ''); ?>
-                            </textarea>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Keluhan/Riwayat Penyakit</label>
+                                <textarea class="form-control" name="riwayat_penyakit" rows="3" required>
+                                    <?php echo htmlspecialchars($row['Riwayat_Penyakit'] ?? ''); ?>
+                                </textarea>
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Upload Dokumen</label>
-                            <input type="file" name="dokumen[]" class="form-control" multiple>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Upload Dokumen</label>
+                                <input type="file" name="dokumen[]" class="form-control" multiple>
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Jenis Dokumen</label>
-                            <select name="jenis_dokumen[]" class="form-select">
-                                <option value="Hasil Lab">Hasil Lab</option>
-                                <option value="Resep">Resep</option>
-                                <option value="Rujukan">Rujukan</option>
-                                <option value="Lainnya">Lainnya</option>
-                            </select>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Jenis Dokumen</label>
+                                <select name="jenis_dokumen[]" class="form-select">
+                                    <option value="Hasil Lab">Hasil Lab</option>
+                                    <option value="Resep">Resep</option>
+                                    <option value="Rujukan">Rujukan</option>
+                                    <option value="Lainnya">Lainnya</option>
+                                </select>
+                            </div>
 
-                        <div class="mb-3">
+                            <!-- <div class="mb-3">
                             <label class="form-label">Keterangan</label>
                             <textarea name="keterangan_dokumen[]" class="form-control" rows="2"></textarea>
+                        </div> -->
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        <button type="submit" name="update_record" class="btn btn-primary">Update</button>
-                    </div>
-                </form>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                            <button type="submit" name="update_record" class="btn btn-primary">Update</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
     <?php endwhile; ?>
-    
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>

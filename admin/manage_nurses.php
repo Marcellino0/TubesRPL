@@ -10,6 +10,17 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
 
 $message = '';
 $messageType = '';
+$editData = null; // Initialize $editData as null by default
+
+// Handle Edit - Ambil data untuk form edit
+if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
+    $perawatId = $_GET['id'];
+    $stmt = $conn->prepare("SELECT * FROM Perawat WHERE ID_Perawat = ?");
+    $stmt->bind_param("i", $perawatId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $editData = $result->fetch_assoc();
+}
 
 // Handle form submission untuk Tambah/Edit Perawat
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -41,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->execute()) {
             $message = $perawatId ? "Data perawat berhasil diperbarui." : "Perawat baru berhasil ditambahkan.";
             $messageType = "success";
+            // Reset edit data after successful submission
+            $editData = null;
+            // Redirect to clear the form
+            header("Location: " . $_SERVER['PHP_SELF'] . "?message=" . urlencode($message) . "&type=" . urlencode($messageType));
+            exit();
         } else {
             $message = "Terjadi kesalahan: " . $conn->error;
             $messageType = "error";
@@ -48,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Hapus perawat
+// Handle Delete
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     $perawatId = $_GET['id'];
     $stmt = $conn->prepare("DELETE FROM Perawat WHERE ID_Perawat = ?");
@@ -61,6 +77,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
         $message = "Gagal menghapus perawat: " . $conn->error;
         $messageType = "error";
     }
+    
+    // Redirect after delete to prevent resubmission
+    header("Location: " . $_SERVER['PHP_SELF'] . "?message=" . urlencode($message) . "&type=" . urlencode($messageType));
+    exit();
+}
+
+// Handle messages from redirects
+if (isset($_GET['message']) && isset($_GET['type'])) {
+    $message = $_GET['message'];
+    $messageType = $_GET['type'];
 }
 
 // Ambil daftar perawat
@@ -134,53 +160,53 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
         </aside>
 
         <!-- Main Content -->
-        <!-- Main Content -->
         <main class="flex-1 ml-64 p-8">
-            <?php if ($message): ?>
-                <div class="mb-4 p-4 <?php
-                echo $messageType === 'success'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800';
-                ?> rounded-md">
-                    <?php echo htmlspecialchars($message); ?>
-                </div>
-            <?php endif; ?>
+        <?php if ($message): ?>
+            <div class="mb-4 p-4 <?php echo $messageType === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?> rounded-md">
+                <?php echo htmlspecialchars($message); ?>
+            </div>
+        <?php endif; ?>
 
-            <!-- Perawat Management Card -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="p-6">
-                    <h2 class="text-xl font-bold mb-4">Kelola Perawat</h2>
+        <!-- Perawat Management Card -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6">
+                <h2 class="text-xl font-bold mb-4">Kelola Perawat</h2>
 
-                    <!-- Form Tambah/Edit Perawat -->
-                    <form action="" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <input type="hidden" name="perawat_id" id="perawat_id">
+                <!-- Form Tambah/Edit Perawat -->
+                <form action="" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <input type="hidden" name="perawat_id" value="<?php echo $editData ? htmlspecialchars($editData['ID_Perawat']) : ''; ?>">
 
-                        <div>
-                            <label for="nama" class="block text-sm font-medium text-gray-700">Nama Perawat</label>
-                            <input type="text" id="nama" name="nama" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        </div>
+                    <div>
+                        <label for="nama" class="block text-sm font-medium text-gray-700">Nama Perawat</label>
+                        <input type="text" id="nama" name="nama" required
+                            value="<?php echo $editData ? htmlspecialchars($editData['Nama']) : ''; ?>"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                    </div>
 
-                        <div>
-                            <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                            <input type="text" id="username" name="username" required
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
-                        </div>
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input type="text" id="username" name="username" required
+                            value="<?php echo $editData ? htmlspecialchars($editData['Username']) : ''; ?>"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                    </div>
 
-                        <div class="col-span-2">
-                            <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <input type="password" id="password" name="password"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                    <div class="col-span-2">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" name="password"
+                            <?php echo !$editData ? 'required' : ''; ?>
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200">
+                        <?php if ($editData): ?>
                             <p class="mt-1 text-sm text-gray-500">Kosongkan jika tidak ingin mengubah password</p>
-                        </div>
+                        <?php endif; ?>
+                    </div>
 
-                        <div class="col-span-full">
-                            <button type="submit"
-                                class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                Simpan
-                            </button>
-                        </div>
-                    </form>
+                    <div class="col-span-full">
+                        <button type="submit"
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <?php echo $editData ? 'Update' : 'Simpan'; ?>
+                        </button>
+                    </div>
+                </form>
 
                     <!-- Daftar Perawat -->
                     <h3 class="text-lg font-semibold mb-4">Daftar Perawat</h3>
@@ -188,16 +214,13 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Nama
                                     </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Username
                                     </th>
-                                    <th
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Aksi
                                     </th>
                                 </tr>
@@ -212,17 +235,14 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
                                             <?= htmlspecialchars($row['Username']); ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-3 flex">
-                                            <a href="edit_nurse.php?id=<?= $row['ID_Perawat']; ?>"
-                                                class="text-blue-600 hover:text-blue-900">
+                                            <a href="?action=edit&id=<?= $row['ID_Perawat']; ?>" 
+                                               class="text-blue-600 hover:text-blue-900">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form method="POST" action="delete_nurse.php" class="inline"
-                                                onsubmit="return confirmDelete(<?= $row['ID_Perawat']; ?>)">
-                                                <input type="hidden" name="perawat_id" value="<?= $row['ID_Perawat']; ?>">
-                                                <button type="submit" class="text-red-600 hover:text-red-900">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
+                                            <button onclick="confirmDelete(<?= $row['ID_Perawat']; ?>)"
+                                                    class="text-red-600 hover:text-red-900">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
@@ -244,7 +264,7 @@ $perawatQuery = $conn->query("SELECT * FROM Perawat ORDER BY Nama");
 
         function confirmDelete(perawatId) {
             if (confirm("Yakin ingin menghapus perawat ini?")) {
-                window.location.href = "?action=delete&id=" + perawatId;
+                window.location.href = `?action=delete&id=${perawatId}`;
             }
         }
     </script>

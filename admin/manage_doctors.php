@@ -12,13 +12,13 @@ $message = '';
 $messageType = '';
 
 // Handle form submission untuk Tambah/Edit Dokter, termasuk Harga
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $dokterId = $_POST['dokter_id'] ?? null;
-    $nama = $_POST['nama'];
-    $spesialis = $_POST['spesialis'];
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    $harga = $_POST['harga'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_doctor'])) {
+    $dokterId = isset($_POST['dokter_id']) ? $_POST['dokter_id'] : null;
+    $nama = isset($_POST['nama']) ? trim($_POST['nama']) : '';
+    $spesialis = isset($_POST['spesialis']) ? trim($_POST['spesialis']) : '';
+    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
+    $password = isset($_POST['password']) ? trim($_POST['password']) : '';
+    $harga = isset($_POST['harga']) ? trim($_POST['harga']) : '';
 
     if (empty($nama) || empty($spesialis) || empty($username) || empty($harga)) {
         $message = "Semua field kecuali password harus diisi!";
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Tambah dokter baru
             $stmt = $conn->prepare("INSERT INTO Dokter (Nama, Spesialis, Username, Password, Harga_Dokter) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssdi", $nama, $spesialis, $username, $password, $harga);
+            $stmt->bind_param("ssssd", $nama, $spesialis, $username, $password, $harga);
         }
 
         if ($stmt->execute()) {
@@ -50,8 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Hapus dokter
-if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
-    $dokterId = $_GET['id'];
+if (isset($_POST['delete_doctor']) && isset($_POST['dokter_id'])) {
+    $dokterId = $_POST['dokter_id'];
     $stmt = $conn->prepare("DELETE FROM Dokter WHERE ID_Dokter = ?");
     $stmt->bind_param("i", $dokterId);
 
@@ -161,12 +161,14 @@ $dokterQuery = $conn->query("
 
                         <div>
                             <label for="nama" class="block text-sm font-medium text-gray-700">Nama Dokter</label>
-                            <input type="text" id="nama" name="nama" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <input type="text" id="nama" name="nama" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         </div>
 
                         <div>
                             <label for="spesialis" class="block text-sm font-medium text-gray-700">Spesialis</label>
-                            <select id="spesialis" name="spesialis" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <select id="spesialis" name="spesialis" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                                 <option value="">Pilih Spesialis</option>
                                 <option value="Umum">Umum</option>
                                 <option value="Penyakit Dalam">Penyakit Dalam</option>
@@ -183,25 +185,28 @@ $dokterQuery = $conn->query("
 
                         <div>
                             <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                            <input type="text" id="username" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <input type="text" id="username" name="username" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         </div>
 
                         <div>
                             <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                            <input type="password" id="password" name="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <input type="password" id="password" name="password"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                             <p class="mt-1 text-sm text-gray-500">Kosongkan jika tidak ingin mengubah password</p>
                         </div>
 
                         <div>
                             <label for="harga" class="block text-sm font-medium text-gray-700">Harga Dokter</label>
-                            <input type="number" id="harga" name="harga" required step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <input type="number" id="harga" name="harga" required step="0.01"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         </div>
 
                         <div class="col-span-full">
-                            <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
-                                Simpan
-                            </button>
-                        </div>
+        <button type="submit" name="submit_doctor" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+            Simpan
+        </button>
+    </div>
                     </form>
 
                     <!-- Daftar Dokter -->
@@ -210,32 +215,48 @@ $dokterQuery = $conn->query("
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Spesialis</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Nama</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Spesialis</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Username</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Harga</th>
+                                    <th
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php while ($row = $dokterQuery->fetch_assoc()): ?>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Nama']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Spesialis']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= htmlspecialchars($row['Username']); ?></td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp<?= number_format($row['Harga_Dokter'], 2, ',', '.'); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($row['Nama']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($row['Spesialis']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            <?= htmlspecialchars($row['Username']); ?></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            Rp<?= number_format($row['Harga_Dokter'], 2, ',', '.'); ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="#" onclick="editDokter(<?= htmlspecialchars(json_encode($row)); ?>)" class="text-blue-600 hover:text-blue-900">
+                                            <a href="#" onclick="editDokter(<?= htmlspecialchars(json_encode($row)); ?>)"
+                                                class="text-blue-600 hover:text-blue-900">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <form method="POST" action="" class="inline" onsubmit="return confirmDelete()">
                                                 <input type="hidden" name="dokter_id" value="<?= $row['ID_Dokter']; ?>">
                                                 <button type="submit" name="delete_doctor"
-                                                    class="text-red-600 hover:text-red-900">
+                                                    class="ml-2 text-red-600 hover:text-red-900">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
                                         </td>
+
                                     </tr>
                                 <?php endwhile; ?>
                             </tbody>
@@ -252,13 +273,12 @@ $dokterQuery = $conn->query("
             document.getElementById('nama').value = dokter.Nama;
             document.getElementById('spesialis').value = dokter.Spesialis;
             document.getElementById('username').value = dokter.Username;
-            document.getElementById('password').value = '';
+            document.getElementById('harga').value = dokter.Harga_Dokter;
+            document.getElementById('password').value = ''; // Clear password field
         }
 
-        function confirmDelete(dokterId) {
-            if (confirm("Yakin ingin menghapus dokter ini?")) {
-                window.location.href = "?action=delete&id=" + dokterId;
-            }
+        function confirmDelete() {
+            return confirm("Yakin ingin menghapus dokter ini?");
         }
     </script>
 </body>

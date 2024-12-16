@@ -58,7 +58,6 @@ if (isset($_POST['edit_patient'])) {
     }
 }
 
-// Handle Add Patient Action
 if (isset($_POST['add_patient'])) {
     try {
         // Validasi input dasar
@@ -71,63 +70,68 @@ if (isset($_POST['add_patient'])) {
             throw new Exception("NIK harus 16 digit angka");
         }
 
-        // Start transaction
-        $conn->beginTransaction();
-
-        // Check existing NIK dengan lock
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ? FOR UPDATE");
+        // Check if NIK exists before starting transaction
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM Pasien WHERE NIK = ?");
         $stmt->execute([$_POST['nik']]);
         if ($stmt->fetchColumn() > 0) {
-            $conn->rollBack();
             throw new Exception("NIK sudah terdaftar dalam sistem");
         }
 
-        // Generate nomor rekam medis
-        $year = date('Y');
-        $stmt = $conn->prepare("SELECT MAX(CAST(SUBSTRING_INDEX(Nomor_Rekam_Medis, '-', -1) AS UNSIGNED)) as max_num 
-                               FROM Pasien 
-                               WHERE Nomor_Rekam_Medis LIKE 'RMOffline-$year-%'
-                               FOR UPDATE");
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $next_num = ($result['max_num'] ?? 0) + 1;
-        $nomor_rm = sprintf("RMOffline-%s-%05d", $year, $next_num);
+        // Start transaction
+        $conn->beginTransaction();
 
-        // Calculate age
-        $birthDate = new DateTime($_POST['tanggal_lahir']);
-        $today = new DateTime();
-        $age = $today->diff($birthDate)->y;
+        try {
+            // Generate nomor rekam medis
+            $year = date('Y');
+            $stmt = $conn->prepare("SELECT MAX(CAST(SUBSTRING_INDEX(Nomor_Rekam_Medis, '-', -1) AS UNSIGNED)) as max_num 
+                                   FROM Pasien 
+                                   WHERE Nomor_Rekam_Medis LIKE 'RMOffline-$year-%'
+                                   FOR UPDATE");
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $next_num = ($result['max_num'] ?? 0) + 1;
+            $nomor_rm = sprintf("RMOffline-%s-%05d", $year, $next_num);
 
-        // Insert new patient
-        $stmt = $conn->prepare("INSERT INTO Pasien 
-            (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur, Registration_Type) 
-            VALUES (?, ?, ?, ?, ?, ?, 'offline')");
+            // Calculate age
+            $birthDate = new DateTime($_POST['tanggal_lahir']);
+            $today = new DateTime();
+            $age = $today->diff($birthDate)->y;
 
-        $stmt->execute([
-            $_POST['nik'],
-            $_POST['nama'],
-            $_POST['tanggal_lahir'],
-            $_POST['jenis_kelamin'],
-            $nomor_rm,
-            $age
-        ]);
+            // Insert new patient
+            $stmt = $conn->prepare("INSERT INTO Pasien 
+                (NIK, Nama, Tanggal_Lahir, Jenis_Kelamin, Nomor_Rekam_Medis, Umur, Registration_Type) 
+                VALUES (?, ?, ?, ?, ?, ?, 'offline')");
 
-        // Commit transaction
-        $conn->commit();
+            $stmt->execute([
+                $_POST['nik'],
+                $_POST['nama'],
+                $_POST['tanggal_lahir'],
+                $_POST['jenis_kelamin'],
+                $nomor_rm,
+                $age
+            ]);
 
-        $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
-        header("Location: manage_patients.php");
-        exit();
+            // Commit transaction
+            $conn->commit();
+            $_SESSION['success_message'] = "Pasien berhasil ditambahkan dengan Nomor RM: " . $nomor_rm;
+            header("Location: manage_patients.php");
+            exit();
+
+        } catch (PDOException $e) {
+            // Only rollback if we have an active transaction
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            throw $e; // Re-throw to be caught by outer catch block
+        }
 
     } catch (PDOException $e) {
-        $conn->rollBack();
         if ($e->getCode() == 23000) { // SQL error code for duplicate entry
             $_SESSION['error_message'] = "NIK sudah terdaftar dalam sistem";
         } else {
             $_SESSION['error_message'] = "Database Error: " . $e->getMessage();
         }
     } catch (Exception $e) {
-        $conn->rollBack();
         $_SESSION['error_message'] = $e->getMessage();
     }
 }
