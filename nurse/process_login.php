@@ -1,66 +1,78 @@
 <?php
+// Memulai sesi PHP agar variabel sesi dapat digunakan di seluruh aplikasi
 session_start();
+
+// Menyertakan file konfigurasi untuk koneksi database
 require_once('../config/db_connection.php');
 
-// Function to sanitize input
+// Fungsi untuk membersihkan input pengguna agar aman dari XSS atau injeksi
 function sanitize($data) {
-    $data = trim($data);
-    $data = stripslashes($data);
-    $data = htmlspecialchars($data);
+    $data = trim($data); // Menghapus spasi di awal dan akhir
+    $data = stripslashes($data); // Menghapus backslash
+    $data = htmlspecialchars($data); // Mengonversi karakter spesial menjadi entitas HTML
     return $data;
 }
 
-if($_SERVER['REQUEST_METHOD'] == 'POST') {
+// Blok untuk menangani permintaan POST dari form login
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Membersihkan input username
     $username = sanitize($_POST['username']);
-    $password = $_POST['password']; // Don't sanitize password as it needs to match exactly
+    // Password tidak disanitasi karena harus dicocokkan persis dengan data di database
+    $password = $_POST['password'];
+    // Mengambil tipe pengguna dari form
     $user_type = $_POST['user_type'];
     
-    // Verify user type is perawat
-    if($user_type !== 'perawat') {
+    // Memeriksa apakah tipe pengguna adalah 'perawat'
+    if ($user_type !== 'perawat') {
+        // Jika tipe pengguna salah, set error pada sesi dan arahkan kembali ke halaman login
         $_SESSION['error'] = "Tipe pengguna tidak valid";
         header("Location: ../index.php");
         exit();
     }
 
     try {
-        // Prepare and execute query to fetch perawat data
+        // Menyiapkan query untuk mendapatkan data perawat berdasarkan username
         $sql = "SELECT ID_Perawat as user_id, Nama, Password FROM Perawat WHERE Username = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt = $conn->prepare($sql); // Menyiapkan query dengan statement terparameter
+        $stmt->bind_param("s", $username); // Mengikat parameter username
+        $stmt->execute(); // Menjalankan query
+        $result = $stmt->get_result(); // Mendapatkan hasil query
         
-        if($row = $result->fetch_assoc()) {
-            // For this example, assuming simple password comparison since the DB shows plain passwords
-            // In production, you should use password_verify() with hashed passwords
+        // Memeriksa apakah data perawat ditemukan
+        if ($row = $result->fetch_assoc()) {
+            // Membandingkan password yang dimasukkan dengan password di database
+            // Dalam produksi, gunakan password_verify() untuk password yang di-hash
             if ($password === $row['Password']) {
-                // Set session variables
+                // Jika password cocok, set variabel sesi untuk pengguna yang berhasil login
                 $_SESSION['user_id'] = $row['user_id'];
                 $_SESSION['username'] = $username;
                 $_SESSION['nama'] = $row['Nama'];
                 $_SESSION['user_type'] = 'perawat';
                 
-                // Redirect to nurse dashboard
+                // Mengarahkan ke dashboard perawat
                 header("Location: nurse_dashboard.php");
                 exit();
             } else {
+                // Jika password salah, set error pada sesi dan arahkan kembali ke halaman login
                 $_SESSION['error'] = "Username atau password salah";
                 header("Location: ../index.php");
                 exit();
             }
         } else {
+            // Jika username tidak ditemukan, set error pada sesi dan arahkan kembali ke halaman login
             $_SESSION['error'] = "Username atau password salah";
             header("Location: ../index.php");
             exit();
         }
-    } catch(Exception $e) {
+    } catch (Exception $e) {
+        // Menangkap kesalahan dan set error pada sesi dengan pesan kesalahan
         $_SESSION['error'] = "Terjadi kesalahan dalam proses login: " . $e->getMessage();
         header("Location: ../index.php");
         exit();
     }
 
 } else {
-    // If not POST request, redirect to login page
+    // Jika metode request bukan POST, arahkan kembali ke halaman login
     header("Location: ../index.php");
     exit();
 }

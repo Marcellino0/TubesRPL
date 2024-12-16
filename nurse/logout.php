@@ -1,19 +1,19 @@
 <?php
-// Start the session
+// Memulai sesi
 session_start();
 
-// Clear all session variables
+// Menghapus semua variabel sesi
 $_SESSION = array();
 
-// Destroy the session cookie
+// Menghancurkan cookie sesi
 if (isset($_COOKIE[session_name()])) {
-    setcookie(session_name(), '', time()-3600, '/');
+    setcookie(session_name(), '', time()-3600, '/'); // Mengatur waktu kedaluwarsa cookie menjadi masa lalu untuk menghapusnya
 }
 
-// Destroy the session
+// Menghancurkan sesi
 session_destroy();
 
-// Redirect to login page
+// Mengarahkan ulang ke halaman login
 header("Location: ../index.php");
-exit();
+exit(); // Mengakhiri eksekusi skrip agar pengalihan bekerja dengan baik
 ?>

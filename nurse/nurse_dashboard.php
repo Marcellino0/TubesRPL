@@ -2,13 +2,13 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if nurse is logged in
+// Memastikan bahwa hanya perawat yang login dapat mengakses halaman ini
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'perawat') {
     header("Location: ../index.php");
     exit();
 }
 
-// Function to get pending examinations// Function to get pending examinations
+// Fungsi untuk mengambil daftar pasien yang masih menunggu pemeriksaan hari ini
 function getPendingExaminations($conn)
 {
     $sql = "SELECT p.ID_Pendaftaran, ps.ID_Pasien, ps.Nama as nama_pasien, ps.Nomor_Rekam_Medis, 
@@ -28,11 +28,11 @@ function getPendingExaminations($conn)
             AND p.No_Antrian > 0
             ORDER BY p.No_Antrian ASC";
 
-    $result = $conn->query($sql);
+    $result = $conn->query($sql);// Eksekusi query dan mengembalikan hasil
     return $result;
 }
 
-// Handle form submission for medical record update
+// Proses form untuk memperbarui rekam medis
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
     $id_rekam = $_POST['id_rekam'];
     $tekanan_darah = $_POST['tekanan_darah'];
@@ -62,12 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
     );
 
     if ($stmt->execute()) {
-        // Handle new file uploads if any
+        // Menghandle upload dokumen baru jika ada
         if (!empty($_FILES['dokumen']['name'][0])) {
             $id_pasien = $_POST['id_pasien'];
             $upload_dir = __DIR__ . '/uploads/' . $id_pasien . '/';
             if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0777, true);
+                mkdir($upload_dir, 0777, true);// Membuat direktori upload jika belum ada
             }
 
             $uploaded_files = $_FILES['dokumen'];
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
                 $jenis_dokumen = $_POST['jenis_dokumen'][$i];
                 $keterangan = $_POST['keterangan_dokumen'][$i];
 
-                $allowed_types = ['pdf', 'jpg', 'jpeg', 'png'];
+                $allowed_types = ['pdf', 'jpg', 'jpeg', 'png'];// Jenis file yang diizinkan
                 $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
                 if (!in_array($file_ext, $allowed_types)) {
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
                     continue;
                 }
 
-                if ($uploaded_files['size'][$i] > 5242880) {
+                if ($uploaded_files['size'][$i] > 5242880) {// Membatasi ukuran file maksimum 5MB
                     $_SESSION['error'] = "File $file_name melebihi ukuran maksimum 5MB.";
                     continue;
                 }
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
                 $new_file_name = uniqid('doc_') . '.' . $file_ext;
                 $file_path = $upload_dir . $new_file_name;
 
-                if (move_uploaded_file($file_tmp, $file_path)) {
+                if (move_uploaded_file($file_tmp, $file_path)) {// Memindahkan file ke direktori upload
                     $sql_dokumen = "INSERT INTO dokumen_medis (ID_Pasien, Nama_File, Jenis_Dokumen, 
                                     Keterangan, Tanggal_Upload, Path_File) 
                                     VALUES (?, ?, ?, ?, NOW(), ?)";
@@ -113,25 +113,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_record'])) {
                     );
 
                     if (!$stmt_dokumen->execute()) {
-                        $upload_success = false;
-                        error_log("Error inserting file to database: " . $stmt_dokumen->error);
+                        $upload_success = false;// Jika gagal menyimpan ke database
+                        error_log("Error inserting file to database: " . $stmt_dokumen->error);// Pesan error
                     }
                 } else {
-                    $upload_success = false;
-                    error_log("Failed to move uploaded file: " . $file_name);
+                    $upload_success = false;// Jika gagal memindahkan file
+                    error_log("Failed to move uploaded file: " . $file_name);// Pesan error
                 }
             }
         }
-        $_SESSION['success'] = "Rekam medis berhasil diperbarui.";
+        $_SESSION['success'] = "Rekam medis berhasil diperbarui.";// Pesan sukses
     } else {
-        $_SESSION['error'] = "Gagal memperbarui rekam medis: " . $conn->error;
+        $_SESSION['error'] = "Gagal memperbarui rekam medis: " . $conn->error;// Pesan error
     }
 
-    header("Location: nurse_dashboard.php");
+    header("Location: nurse_dashboard.php"); // Redirect ke dashboard
     exit();
 }
 
-// Handle form submission for new medical record
+// Menangani pengiriman formulir untuk rekam medis baru
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
     $id_pasien = $_POST['id_pasien'];
     $tekanan_darah = $_POST['tekanan_darah'];
@@ -226,7 +226,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_record'])) {
     exit();
 }
 
-// Get today's pending examinations
 $pendingExaminations = getPendingExaminations($conn);
 ?>
 <!DOCTYPE html>
@@ -238,7 +237,6 @@ $pendingExaminations = getPendingExaminations($conn);
     <title>Dashboard Perawat - Poliklinik X</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Retain Bootstrap for modal functionality -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
@@ -349,9 +347,7 @@ $pendingExaminations = getPendingExaminations($conn);
         </main>
     </div>
 
-    <!-- Keep existing modal(s) with Bootstrap styling -->
     <?php
-    // Reset pointer again
     $pendingExaminations->data_seek(0);
     while ($row = $pendingExaminations->fetch_assoc()): ?>
         <div class="modal fade" id="recordModal<?php echo $row['ID_Pendaftaran']; ?>" tabindex="-1">
@@ -364,7 +360,6 @@ $pendingExaminations = getPendingExaminations($conn);
                     </div>
                     <form method="POST" enctype="multipart/form-data">
                         <div class="modal-body">
-                            <!-- All existing form fields are kept exactly the same as in the original file -->
                             <input type="hidden" name="id_pasien" value="<?php echo $row['ID_Pasien']; ?>">
 
                             <div class="mb-3">
@@ -420,7 +415,6 @@ $pendingExaminations = getPendingExaminations($conn);
                 </div>
             </div>
         </div>
-        <!-- Modal untuk update pemeriksaan -->
     <div class="modal fade" id="updateModal<?php echo $row['ID_Pendaftaran']; ?>" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">

@@ -2,13 +2,13 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if nurse is logged in
+// Memastikan bahwa hanya perawat yang dapat mengakses halaman ini
 if (!isset($_SESSION['user_id']) || $_SESSION['user_type'] !== 'perawat') {
-    header("Location: ../index.php");
+    header("Location: ../index.php"); // Redirect ke halaman login jika bukan perawat
     exit();
 }
 
-// Ambil seluruh data rekam medis
+// Mengambil seluruh data rekam medis dari database, termasuk informasi pasien
 $sql = "SELECT rm.ID_Rekam, rm.ID_Pasien, rm.Tekanan_Darah, rm.Tinggi_Badan, rm.Berat_Badan, rm.Suhu, 
         rm.Riwayat_Penyakit, rm.Tanggal, p.Nama AS Nama_Pasien
         FROM rekam_medis rm
@@ -23,12 +23,13 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rekam Medis - Poliklinik X</title>
+    <!-- Menggunakan Tailwind CSS dan Font Awesome untuk desain -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
-        <!-- Sidebar (same as nurse_dashboard) -->
+        <!-- Sidebar untuk navigasi menu perawat -->
         <aside class="w-64 bg-blue-800 text-white fixed h-full">
             <div class="p-4">
                 <h1 class="text-xl font-bold mb-8">Poliklinik X</h1>
@@ -45,6 +46,7 @@ $result = $conn->query($sql);
                     </a>
                 </nav>
             </div>
+            <!-- Bagian bawah sidebar menampilkan nama perawat dan opsi logout -->
             <div class="absolute bottom-0 w-64 p-4 bg-blue-900">
                 <div class="flex items-center space-x-3 mb-4">
                     <i class="fas fa-user-nurse text-2xl"></i>
@@ -60,19 +62,21 @@ $result = $conn->query($sql);
             </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- Konten utama -->
         <main class="flex-1 ml-64 p-8">
-            <!-- Medical Records Section -->
+            <!-- Bagian daftar rekam medis -->
             <div class="bg-white rounded-lg shadow">
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-bold">Daftar Rekam Medis</h2>
+                        <!-- Input pencarian pasien -->
                         <div class="flex space-x-2">
                             <input type="text" id="searchInput" placeholder="Cari pasien..." 
                                 class="px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
                     <div class="overflow-x-auto">
+                        <!-- Tabel daftar rekam medis -->
                         <table class="min-w-full divide-y divide-gray-200" id="recordTable">
                             <thead>
                                 <tr>
@@ -99,7 +103,7 @@ $result = $conn->query($sql);
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?php echo htmlspecialchars($row['Tanggal']); ?></td>
                                             <td class="px-6 py-4 text-sm text-gray-900">
                                                 <?php
-                                                // Ambil dokumen terkait
+                                                // Query dokumen medis terkait pasien
                                                 $id_pasien = $row['ID_Pasien'];
                                                 $sql_docs = "SELECT Nama_File, Jenis_Dokumen, Path_File 
                                                              FROM dokumen_medis 
@@ -140,7 +144,7 @@ $result = $conn->query($sql);
     </div>
 
     <script>
-        // Simple client-side search functionality
+        // Fungsi pencarian data pasien di tabel
         document.getElementById('searchInput').addEventListener('keyup', function() {
             const searchValue = this.value.toLowerCase();
             const table = document.getElementById('recordTable');
