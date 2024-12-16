@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'pasien') {
     exit();
 }
 
-// Get patient data
+// Mengambil data pasien 
 $patientId = $_SESSION['user_id'];
 $stmt = $conn->prepare("
     SELECT p.*, 
@@ -23,7 +23,7 @@ $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $patientData = $stmt->get_result()->fetch_assoc();
 
-// Modify exam results query to only include diagnoses and prescriptions
+// Mengambil hasil pemeriksaan terakhir
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pemeriksaan,
@@ -47,7 +47,7 @@ $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $examResults = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Add a new query to fetch registration details with reservation proof
+// Mengambil pendaftaran aktif terakhir
 $stmt = $conn->prepare("
     SELECT 
         p.ID_Pendaftaran,
@@ -72,7 +72,7 @@ $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $activeRegistrations = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get payment history
+// Mengambil riwayat pembayaran terakhir
 $stmt = $conn->prepare("
     SELECT 
         pb.*,
@@ -90,7 +90,7 @@ $stmt->bind_param("i", $patientId);
 $stmt->execute();
 $paymentHistory = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Get available doctors count and specialties count for quick stats
+// Mengambil statistik jumlah dokter dan spesialis
 $query_stats = "
     SELECT 
         COUNT(DISTINCT d.ID_Dokter) as total_doctors,

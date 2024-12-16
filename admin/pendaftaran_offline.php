@@ -2,20 +2,19 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Check if user is logged in as admin
+
 if (!isset($_SESSION['user_type']) || $_SESSION['user_type'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
-// Inside the form submission handler
 if (isset($_POST['register_offline'])) {
     try {
-        // Existing input validation...
+    
         if (empty($_POST['nomor_rm']) || empty($_POST['id_jadwal'])) {
             throw new Exception("Semua field harus diisi");
         }
-        // Get patient registration type
+        
         $stmt = $conn->prepare("SELECT ID_Pasien, Registration_Type FROM Pasien WHERE Nomor_Rekam_Medis = ?");
         $stmt->bind_param("s", $_POST['nomor_rm']);
         $stmt->execute();
@@ -26,7 +25,7 @@ if (isset($_POST['register_offline'])) {
             throw new Exception("Nomor Rekam Medis tidak ditemukan");
         }
 
-        // Get latest queue number for today and schedule
+       
         $stmt = $conn->prepare("
             SELECT MAX(No_Antrian) as last_number 
             FROM Pendaftaran 
@@ -39,7 +38,7 @@ if (isset($_POST['register_offline'])) {
         $row = $result->fetch_assoc();
         $no_antrian = ($row['last_number'] ?? 0) + 1;
 
-        // Update quota based on registration type
+      
         if ($patient['Registration_Type'] === 'offline') {
             $quotaField = 'Kuota_Offline';
             $verificationStatus = 'Terverifikasi';
@@ -52,7 +51,7 @@ if (isset($_POST['register_offline'])) {
         } else {
             $quotaField = 'Kuota_Online';
             $verificationStatus = 'Belum Diverifikasi';
-            $no_antrian = 0; // Will be assigned after verification
+            $no_antrian = 0; 
 
             $stmt = $conn->prepare("
                 UPDATE Jadwal_Dokter 
@@ -63,10 +62,10 @@ if (isset($_POST['register_offline'])) {
         $stmt->bind_param("i", $_POST['id_jadwal']);
         $stmt->execute();
 
-        // Generate registration proof
+ 
         $bukti_reservasi = 'REG' . date('Ymd') . sprintf('%03d', $no_antrian);
 
-        // Insert registration with appropriate verification status
+        
         $stmt = $conn->prepare("
                 INSERT INTO Pendaftaran 
                 (ID_Pasien, ID_Jadwal, Waktu_Daftar, No_Antrian, Status, Bukti_Reservasi, Verifikasi, Tipe_Pendaftaran) 

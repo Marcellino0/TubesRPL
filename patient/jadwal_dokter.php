@@ -10,15 +10,15 @@ if (isset($_SESSION['user_id']) && $_SESSION['user_type'] === 'pasien') {
     $result = $stmt->get_result()->fetch_assoc();
     $patientName = $result['Nama'] ?? "Pasien";
 }
-// Get all specialists
+// Mengambil semua data spesialis dari database
 $query_specialists = "SELECT DISTINCT Spesialis FROM Dokter ORDER BY Spesialis";
 $specialists = $conn->query($query_specialists)->fetch_all(MYSQLI_ASSOC);
 
-// Get search parameters
+
 $search_doctor = isset($_GET['search_doctor']) ? $_GET['search_doctor'] : '';
 $selected_specialist = isset($_GET['specialist']) ? $_GET['specialist'] : '';
 
-// Build the base query joining dokter and jadwal_dokter tables
+// Membuat query untuk mengambil data dokter dan jadwalnya
 $query = "SELECT 
     d.ID_Dokter,
     d.Nama as nama_dokter,
@@ -38,12 +38,11 @@ if (!empty($search_doctor)) {
 if (!empty($selected_specialist)) {
     $query .= " AND d.Spesialis = ?";
 }
-
+// Mengurutkan hasil berdasarkan nama dan hari
 $query .= " ORDER BY d.Nama, FIELD(jd.Hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')";
 
 $stmt = $conn->prepare($query);
 
-// Bind parameters if they exist
 if (!empty($search_doctor) && !empty($selected_specialist)) {
     $search_param = "%$search_doctor%";
     $stmt->bind_param("ss", $search_param, $selected_specialist);
@@ -57,7 +56,7 @@ if (!empty($search_doctor) && !empty($selected_specialist)) {
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Process the results to group schedules by doctor
+// Memproses hasil query untuk mengelompokkan jadwal berdasarkan dokter
 $schedules = [];
 while ($row = $result->fetch_assoc()) {
     $doctorId = $row['ID_Dokter'];

@@ -39,7 +39,7 @@ if(isset($_POST['register'])) {
         $errors[] = "Password minimal 8 karakter";
     }
 
-    // Check if username already exists
+    // Cek username sudah terpakai atau belum
     $stmt = $conn->prepare("SELECT Username FROM Pasien WHERE Username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -48,7 +48,7 @@ if(isset($_POST['register'])) {
     }
     $stmt->close();
 
-    // Check if NIK already exists
+    // Cek NIK sudah terdaftar atau belum
     $stmt = $conn->prepare("SELECT NIK FROM Pasien WHERE NIK = ?");
     $stmt->bind_param("s", $nik);
     $stmt->execute();
@@ -70,7 +70,7 @@ if(isset($_POST['register'])) {
         $next_num = str_pad(($row['max_num'] + 1), 5, '0', STR_PAD_LEFT);
         $nomor_rekam_medis = "RM-$year-$next_num";
         
-        // Calculate age
+        // Menghitung umur
         $birthDate = new DateTime($tanggal_lahir);
         $today = new DateTime('today');
         $umur = $birthDate->diff($today)->y;
@@ -78,7 +78,7 @@ if(isset($_POST['register'])) {
         // Hash password
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-        // Insert new patient
+        // Menyimpan data pasien baru
         $stmt = $conn->prepare("INSERT INTO Pasien (Nama, NIK, Tanggal_Lahir, Jenis_Kelamin, 
                                Alamat, Email, No_HP, Username, Password, Nomor_Rekam_Medis, Umur) 
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");

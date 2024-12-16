@@ -8,10 +8,10 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = sanitize($_POST['password']);
     $user_type = $_POST['user_type'];
     
-    // Hash password
+
     $hashed_password = hash('sha256', $password);
     
-    // Determine table based on user type
+  
     switch($user_type) {
         case 'admin':
             $table = 'Administrator';
@@ -35,7 +35,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
     }
 
-    // Check credentials
+ 
     $sql = "SELECT ID_" . ucfirst($user_type) . " as user_id, Nama 
             FROM $table 
             WHERE Username = '$username' AND Password = '$hashed_password'";
@@ -49,13 +49,13 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     if($row = sqlsrv_fetch_array($result)) {
-        // Set session variables
+       
         $_SESSION['user_id'] = $row['user_id'];
         $_SESSION['username'] = $username;
         $_SESSION['nama'] = $row['Nama'];
         $_SESSION['user_type'] = $user_type;
         
-        // Redirect to appropriate dashboard
+     
         header("Location: $redirect");
         exit();
     } else {

@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Pendaftaran tidak ditemukan atau bukan pendaftaran online");
                 }
 
-                // Get next queue number
+               
                 $queueQuery = $conn->prepare("
                     SELECT COALESCE(MAX(No_Antrian), 0) + 1 as next_queue 
                     FROM Pendaftaran 
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $queueQuery->execute();
                 $nextQueue = $queueQuery->get_result()->fetch_assoc()['next_queue'];
 
-                // Update pendaftaran status
+             
                 $updateStmt = $conn->prepare("
                     UPDATE Pendaftaran 
                     SET Verifikasi = 'Terverifikasi',
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
             } else if ($action === 'reject') {
-                // Return the quota when rejecting
+                
                 $updateQuotaStmt = $conn->prepare("
                     UPDATE Jadwal_Dokter jd
                     JOIN Pendaftaran p ON jd.ID_Jadwal = p.ID_Jadwal
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Gagal memperbarui kuota jadwal");
                 }
 
-                // Update pendaftaran status to rejected
+              
                 $updateStmt = $conn->prepare("
                     UPDATE Pendaftaran 
                     SET Verifikasi = 'Ditolak',
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Query to get pending registrations
+
 $query = "
     SELECT 
         p.ID_Pendaftaran,

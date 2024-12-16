@@ -2,11 +2,11 @@
 session_start();
 require_once('../config/db_connection.php');
 
-// Initialize response message variables
+
 $successMsg = '';
 $errorMsg = '';
 
-// Helper function to get all doctors
+
 function getDoctors($conn)
 {
     $sql = "SELECT ID_Dokter, Nama, Spesialis FROM dokter ORDER BY Nama";
@@ -14,7 +14,7 @@ function getDoctors($conn)
     return $result->fetch_all(MYSQLI_ASSOC);
 }
 
-// Helper function to get schedule by ID
+
 function getScheduleById($conn, $id)
 {
     $stmt = $conn->prepare("SELECT * FROM jadwal_dokter WHERE ID_Jadwal = ?");
@@ -24,7 +24,7 @@ function getScheduleById($conn, $id)
     return $result->fetch_assoc();
 }
 
-// Handle Add/Edit Schedule
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['action'])) {
         // Validate max patients
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Handle Delete Schedule
+
 if (isset($_GET['delete'])) {
     $stmt = $conn->prepare("DELETE FROM jadwal_dokter WHERE ID_Jadwal = ?");
     $stmt->bind_param("i", $_GET['delete']);
@@ -89,7 +89,7 @@ if (isset($_GET['delete'])) {
         $errorMsg = "Error: " . $stmt->error;
     }
 }
-// Get all schedules with doctor information
+
 $schedules = $conn->query("
     SELECT jd.*, d.Nama as nama_dokter, d.Spesialis,
            (SELECT COUNT(*) FROM pendaftaran p 
@@ -420,7 +420,7 @@ $doctors = getDoctors($conn);
             toggleModal('scheduleModal');
         }
 
-        // Reset form when adding new schedule
+    
         document.querySelector('[onclick="toggleModal(\'scheduleModal\')"]').addEventListener('click', function () {
             const form = document.getElementById('scheduleForm');
             form.reset();

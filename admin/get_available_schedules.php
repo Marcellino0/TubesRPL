@@ -7,7 +7,7 @@ if(!isset($_GET['spesialis'])) {
 }
 
 try {
-    // Get available schedules for today with remaining quota
+   
     $query = "
         SELECT 
             j.ID_Jadwal,
@@ -39,7 +39,7 @@ try {
     
     $schedules = [];
     while ($row = $result->fetch_assoc()) {
-        // Format times for display
+       
         $row['Jam_Mulai'] = date('H:i', strtotime($row['Jam_Mulai']));
         $row['Jam_Selesai'] = date('H:i', strtotime($row['Jam_Selesai']));
         $schedules[] = $row;

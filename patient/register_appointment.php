@@ -39,11 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "Semua field harus diisi!";
         $messageType = "error";
     } else {
-        // Start transaction for data integrity
+        
         $conn->begin_transaction();
 
         try {
-            // Get schedule details
+            // Mengambil detail jadwal
             $scheduleQuery = $conn->prepare("
                 SELECT Hari, ID_Dokter 
                 FROM Jadwal_Dokter 
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $scheduleQuery->execute();
             $scheduleDetails = $scheduleQuery->get_result()->fetch_assoc();
 
-            // Check for existing registration
+            // Memeriksa pendaftaran yang sudah ada
             $existingRegQuery = $conn->prepare("
                 SELECT p.ID_Pendaftaran, d.Nama AS Nama_Dokter
                 FROM Pendaftaran p
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Anda sudah terdaftar pada hari {$scheduleDetails['Hari']} dengan dokter {$existingRegDetails['Nama_Dokter']}.");
             }
 
-            // Check schedule availability and quota
+            // Memeriksa ketersediaan jadwal dan kuota
             $scheduleCheck = $conn->prepare("
                 SELECT 
                     jd.Kuota_Online,

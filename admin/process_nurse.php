@@ -15,11 +15,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'];
     $action = $_POST['action'];
 
-    // Begin transaction
+
     sqlsrv_begin_transaction($conn);
 
     try {
-        // Check username uniqueness (excluding current nurse for updates)
+       
         $perawat_id = isset($_POST['perawat_id']) ? intval($_POST['perawat_id']) : 0;
         $sql = "SELECT ID_Perawat FROM Perawat 
                 WHERE Username = '$username' 
@@ -39,18 +39,18 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Hash password
             $hashed_password = hash('sha256', $password);
 
-            // Insert new nurse
+          
             $sql = "INSERT INTO Perawat (Nama, Username, Password)
                     VALUES ('$nama', '$username', '$hashed_password')";
             
             $message = "Data perawat berhasil ditambahkan";
         } else {
-            // Update existing nurse
+           
             $sql = "UPDATE Perawat SET 
                     Nama = '$nama',
                     Username = '$username'";
             
-            // Only update password if a new one is provided
+         
             if(!empty($password)) {
                 $hashed_password = hash('sha256', $password);
                 $sql .= ", Password = '$hashed_password'";
@@ -66,12 +66,12 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Gagal menyimpan data perawat");
         }
 
-        // Commit transaction
+ 
         sqlsrv_commit($conn);
         $_SESSION['success'] = $message;
 
     } catch(Exception $e) {
-        // Rollback transaction on error
+    
         sqlsrv_rollback($conn);
         $_SESSION['error'] = $e->getMessage();
     }
@@ -79,11 +79,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
 } elseif($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['action']) && $_GET['action'] == 'delete') {
     $perawat_id = intval($_GET['id']);
 
-    // Begin transaction
+ 
     sqlsrv_begin_transaction($conn);
 
     try {
-        // Check if nurse has any records
+    
         $sql = "SELECT COUNT(*) as rekam_medis 
                 FROM Rekam_Medis 
                 WHERE ID_Perawat = $perawat_id";
@@ -95,7 +95,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Tidak dapat menghapus perawat yang memiliki riwayat pemeriksaan");
         }
 
-        // Delete nurse
+      
         $sql = "DELETE FROM Perawat WHERE ID_Perawat = $perawat_id";
         $result = sqlsrv_query($conn, $sql);
         
@@ -103,12 +103,11 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Gagal menghapus data perawat");
         }
 
-        // Commit transaction
         sqlsrv_commit($conn);
         $_SESSION['success'] = "Data perawat berhasil dihapus";
 
     } catch(Exception $e) {
-        // Rollback transaction on error
+    
         sqlsrv_rollback($conn);
         $_SESSION['error'] = $e->getMessage();
     }

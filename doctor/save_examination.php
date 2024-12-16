@@ -15,7 +15,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $resep = sanitize($_POST['resep']);
     $waktu_periksa = date('Y-m-d H:i:s');
 
-    // Begin transaction
+
     sqlsrv_begin_transaction($conn);
     try {
         // Insert pemeriksaan
@@ -27,7 +27,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Error saving examination");
         }
 
-        // Get the ID_Pemeriksaan
+        
         $sql = "SELECT SCOPE_IDENTITY() as ID_Pemeriksaan";
         $result = sqlsrv_query($conn, $sql);
         $row = sqlsrv_fetch_array($result);
@@ -59,7 +59,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             throw new Exception("Error creating payment record");
         }
 
-        // Commit transaction
+     
         sqlsrv_commit($conn);
         
         $_SESSION['success'] = "Pemeriksaan berhasil disimpan";
@@ -67,7 +67,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
 
     } catch(Exception $e) {
-        // Rollback transaction on error
+       
         sqlsrv_rollback($conn);
         $_SESSION['error'] = "Terjadi kesalahan: " . $e->getMessage();
         header("Location: examine_patient.php?id=" . $pendaftaran_id);
